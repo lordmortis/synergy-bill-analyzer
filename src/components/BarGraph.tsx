@@ -1,6 +1,5 @@
 import React, {useState, useEffect, useRef, RefObject} from "react";
 import * as d3 from "d3";
-import {precisionRound, svg} from "d3";
 
 interface DataEntry {
   time : string,
