@@ -19,15 +19,19 @@ interface IProps {
 }
 
 function convertRecordTime(record:Record): string {
-  return record.time.toString(10);
+  const time = record.time;
+  const hourPart = Math.trunc(time).toLocaleString("en-AU", {minimumIntegerDigits: 2});
+  const minutePart = (time % 1) > 0.01 ? "30" : "00";;
+  return `${hourPart}:${minutePart}`;
 }
 
 export default function BarGraph(props:IProps) : React.ReactElement {
-  const margin = {top: 20, right: 20, bottom: 30, left: 40};
-  const width = 1170 - margin.left - margin.right;
-  const height = 150 - margin.top - margin.bottom;
-
   const ref : RefObject<SVGGElement | undefined> = useRef();
+
+  const margin = {top: 20, right: 20, bottom: 30, left: 40};
+  const width = (ref.current?.clientWidth === undefined ? 100 : ref.current?.clientWidth) - margin.left - margin.right;
+  const height = (ref.current?.clientHeight === undefined ? 100 : ref.current?.clientHeight) - margin.top - margin.bottom;
+
 
   const x = d3.scaleBand().range([0, width]).padding(0.1);
   const y = d3.scaleLinear().range([height, 0]);
@@ -62,17 +66,14 @@ export default function BarGraph(props:IProps) : React.ReactElement {
             .attr("height", (elem) => height - y(elem.kWh))
       )
 
-    if (gElem.select("g.xAxis").empty()) {
-      gElem.append("g")
-        .attr("class", "xAxis")
-        .attr("transform", `translate(0, ${height})`)
-        .call(d3.axisBottom(x))
-        .selectAll("text")
-        .style("text-anchor", "end")
-        .attr("dx", "-0.4em")
-        .attr("dy", "-0.6em")
-        .attr("transform", "rotate(-90)")
-    }
+    const xAxis = findOrAppend(gElem, "g", "xAxis");
+    xAxis.attr("transform", `translate(0, ${height})`);
+    xAxis.call(d3.axisBottom(x))
+      .selectAll("text")
+      .style("text-anchor", "end")
+      .attr("dx", "-0.4em")
+      .attr("dy", "-0.6em")
+      .attr("transform", "rotate(-90)");
 
     const yAxis = findOrAppend(gElem, "g", "yAxis");
     yAxis.call(d3.axisLeft(y).ticks(4));
@@ -80,6 +81,6 @@ export default function BarGraph(props:IProps) : React.ReactElement {
   }, [props.records, props.maxPower, margin.left, margin.top, width, height, x, y]);
 
   //@ts-ignore
-  return <svg ref={ref}/>;
+  return <svg ref={ref} preserveAspectRatio="xMidYMid meet"></svg>;
 }
 

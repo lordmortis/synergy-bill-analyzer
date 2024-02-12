@@ -45,15 +45,13 @@ function App() {
 
   return (
     <div className="App">
-      <header className="App-header">
-        <FileInput
-          busy={state.busy}
-          filename={state.filename}
-          recordCount={state.records != null ? state.records.length : 0}
-          importFile={importFile}/>
-        <BarGraph records={dateRecords} maxPower={maxPower}/>
-        <DateSelect dates={dates} currentDate={state.showDate} selectDate={selectDate}/>
-      </header>
+      <FileInput
+        busy={state.busy}
+        filename={state.filename}
+        recordCount={state.records != null ? state.records.length : 0}
+        importFile={importFile}/>
+      <BarGraph records={dateRecords} maxPower={maxPower}/>
+      <DateSelect dates={dates} currentDate={state.showDate} selectDate={selectDate}/>
     </div>
   );
 }

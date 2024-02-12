@@ -84,7 +84,7 @@ function AddRecords(records: Record[] | null, newRecords: ImportedRecord[], star
 
 function SetDate(showDate: Date | null, records: Record[] | null) : Date | null {
   if (records == null) return null;
-  if (records.length == 0) return null;
+  if (records.length === 0) return null;
   if (showDate != null) return showDate;
   return records[0].date;
 }
