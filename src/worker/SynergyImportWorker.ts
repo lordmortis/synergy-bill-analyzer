@@ -1,6 +1,4 @@
-import {line} from "d3";
-import {Simulate} from "react-dom/test-utils";
-import copy = Simulate.copy;
+import {debug} from "node:util";
 
 const LFVal:number = 0x0A;
 const CRVal:number = 0x0D;
@@ -23,37 +21,52 @@ export type Entry = {
 type State = {
   busy : boolean,
   currentFile : string | null,
-  data : Entry[] | null,
-}
-
-export type Message = {
-  state : State,
-  importCount: number,
-  error : string | null,
 }
 
 const state:State = {
   busy: false,
   currentFile: null,
-  data: null,
 };
 
-function SendErrorUpdate(count: number,error:string) {
-  const message:Message = {
-    state: state,
-    importCount: count,
-    error: error,
-  }
-  // eslint-disable-next-line no-restricted-globals
-  self.postMessage(message);
+export enum MessageType {
+  Unknown,
+  ImportStart,
+  ImportEnd,
+  Record,
+  Error,
 }
 
-function SendUpdate(count: number) {
-  const message:Message = {
-    state: state,
-    importCount: count,
-    error: null
-  }
+export type Message = ReturnType<
+  typeof errorMessage | typeof importStart | typeof importEnd
+>
+
+function errorMessage(error:string) {
+  return {
+    type: MessageType.Error,
+    error: error,
+  };
+}
+
+function importStart() {
+  return {
+    type: MessageType.ImportStart,
+  };
+}
+
+function importEnd() {
+  return {
+    type: MessageType.ImportEnd,
+  };
+}
+
+function record(record:Entry) {
+  return {
+    type: MessageType.Record,
+    record: record
+  };
+}
+
+function postMessage(message:Message) {
   // eslint-disable-next-line no-restricted-globals
   self.postMessage(message);
 }
@@ -83,7 +96,7 @@ function parseStatus(string: string):ReadingStatusEnum {
   }
 }
 
-function addData(lineBuffer: string): Entry {
+function parse(lineBuffer: string): Entry {
   const parts = lineBuffer.split(",");
   return {
     date: parseDate(parts[0]),
@@ -102,7 +115,6 @@ async function ReadData(stream:ReadableStream<Uint8Array>) {
   let header = true;
   let lineBuffer:string | null = null;
   let remainingBuffer:Uint8Array | null = null;
-  let entries:Entry[] = Array(0);
 
   // @ts-ignore
   for await (const chunk:Uint8Array of stream) {
@@ -132,8 +144,7 @@ async function ReadData(stream:ReadableStream<Uint8Array>) {
         if (header) {
           if (lineBuffer.startsWith("Date,Time,kWh")) header = false;
         } else {
-          entries.push(addData(lineBuffer));
-          SendUpdate(entries.length);
+          postMessage(record(parse(lineBuffer)))
         }
         lineBuffer = null;
       }
@@ -141,34 +152,31 @@ async function ReadData(stream:ReadableStream<Uint8Array>) {
 
     if (offset < index) remainingBuffer = chunk.subarray(offset, index);
   }
-
-  state.data = entries;
 }
 
 function StartImport(file:File) {
   if (state.busy) {
-    SendErrorUpdate(0, "Currently Busy");
+    postMessage(errorMessage("Currently Busy"));
     return;
   }
 
+  postMessage(importStart());
   state.busy = true;
   state.currentFile = file.name;
-  state.data = null;
-  console.log(`Beginning import run for: ${state.currentFile}`)
+
 
   ReadData(file.stream()).finally(() => {
-    console.log(`Ending import run for: ${state.currentFile}`)
     state.busy = false;
-    SendUpdate(state.data != null ? state.data.length : 0);
+    postMessage(importEnd());
+    state.currentFile = null;
   })
 }
 
-
 // eslint-disable-next-line no-restricted-globals
 self.onmessage = (e: MessageEvent<File>) => {
-  StartImport(e.data);
+  if (typeof(e.data.stream) === "function") {
+    StartImport(e.data);
+  }
 }
-
-
 
 export {};
