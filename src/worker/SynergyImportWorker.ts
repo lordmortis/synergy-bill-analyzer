@@ -1,5 +1,3 @@
-import {debug} from "node:util";
-
 const LFVal:number = 0x0A;
 const CRVal:number = 0x0D;
 
@@ -37,33 +35,34 @@ export enum MessageType {
 }
 
 export type Message = ReturnType<
-  typeof errorMessage | typeof importStart | typeof importEnd
+  typeof errorMessage | typeof importStart | typeof importEnd | typeof record
 >
 
 function errorMessage(error:string) {
   return {
     type: MessageType.Error,
     error: error,
-  };
+  } as const;
 }
 
 function importStart() {
   return {
     type: MessageType.ImportStart,
-  };
+  } as const;
 }
 
 function importEnd() {
   return {
     type: MessageType.ImportEnd,
-  };
+  } as const;
 }
 
-function record(record:Entry) {
+function record(record:Entry, recordNumber: number) {
   return {
     type: MessageType.Record,
-    record: record
-  };
+    record: record,
+    recordNumber: recordNumber,
+  } as const;
 }
 
 function postMessage(message:Message) {
@@ -79,6 +78,7 @@ function parseDate(string: string):Date {
     parseInt(parts[1], 10),
     parseInt(parts[0], 10)
   );
+  theDate.setHours(0, 0, 1);
   return theDate;
 }
 
@@ -115,6 +115,7 @@ async function ReadData(stream:ReadableStream<Uint8Array>) {
   let header = true;
   let lineBuffer:string | null = null;
   let remainingBuffer:Uint8Array | null = null;
+  let recordNumber = 0;
 
   // @ts-ignore
   for await (const chunk:Uint8Array of stream) {
@@ -144,7 +145,8 @@ async function ReadData(stream:ReadableStream<Uint8Array>) {
         if (header) {
           if (lineBuffer.startsWith("Date,Time,kWh")) header = false;
         } else {
-          postMessage(record(parse(lineBuffer)))
+          recordNumber++;
+          postMessage(record(parse(lineBuffer), recordNumber))
         }
         lineBuffer = null;
       }

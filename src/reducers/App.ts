@@ -1,4 +1,4 @@
-import React, {useReducer} from "react";
+import React, {useMemo, useReducer} from "react";
 
 import * as SynergyImporter from "../worker/SynergyImportWorker";
 import {MessageType} from "../worker/SynergyImportWorker";
@@ -19,27 +19,34 @@ export const initialState:State = {
   records: Array(0),
 }
 
+enum ActionType {
+  ImportFile,
+  ImportHasStarted,
+  ImportHasEnded,
+  ImportHasNewRecord,
+}
+
 export function importFile(file: File) {
   return {
-    type: 'IMPORT_FILE', file
+    type: ActionType.ImportFile, file
   } as const
 }
 
 function importStarted() {
   return {
-    type: 'IMPORT_STARTED'
+    type: ActionType.ImportHasStarted
   } as const
 }
 
 function importCompleted() {
   return {
-    type: 'IMPORT_COMPLETE'
+    type: ActionType.ImportHasEnded
   } as const
 }
 
-function addRecord(record: Record) {
+function addRecord(record: ImportedRecord, recordNumber: number) {
   return {
-    type: 'ADD_RECORD', record
+    type: ActionType.ImportHasNewRecord, record, recordNumber
   } as const
 }
 
@@ -47,22 +54,40 @@ type Action = ReturnType<
   typeof importFile | typeof importStarted | typeof importCompleted | typeof addRecord
 >
 
+type ImportedRecord = SynergyImporter.Entry;
+
 const synergyImporter : Worker = new Worker( new URL("../worker/SynergyImportWorker.ts", import.meta.url));
+
+function AddRecordTo(records: Record[] | null, record: ImportedRecord, recordNumber: number) : Record[] {
+  if (records == null) records = Array(0);
+  if (records.length >= recordNumber) return records;
+
+  //TODO: handle multiple import types
+  records.push({date: record.date, time: record.time, kWh: record.kWh })
+
+  return records;
+}
 
 function reducer(state:State, action:Action) {
   switch(action.type) {
-    case "IMPORT_FILE":
+    case ActionType.ImportFile:
       synergyImporter.postMessage(action.file);
       return state;
-    case "IMPORT_STARTED":
+    case ActionType.ImportHasStarted:
       return {
         ...state,
         busy: true,
+        records: Array(0),
       }
-    case "IMPORT_COMPLETE":
+    case ActionType.ImportHasEnded:
       return {
         ...state,
         busy: false,
+      }
+    case ActionType.ImportHasNewRecord:
+      return {
+        ...state,
+        records: AddRecordTo(state.records, action.record, action.recordNumber),
       }
     default:
       return state;
@@ -70,20 +95,27 @@ function reducer(state:State, action:Action) {
 }
 
 export default function useUserReducer(startState = initialState): [State, React.Dispatch<Action>] {
-  const [state, dispatch] = useReducer(reducer, startState);
+  const [state, rawDispatch] = useReducer(reducer, startState);
 
-  synergyImporter.onmessage = (e:MessageEvent<SynergyImporter.Message>) => {
-    switch(e.data.type) {
-      case MessageType.ImportStart:
-        dispatch(importStarted())
-        break;
-      case MessageType.ImportEnd:
-        dispatch(importCompleted())
-        break;
-      case MessageType.Record:
-        break;
-    }
-  }
+  const wrappedDispatch = useMemo(
+    () => {
+      synergyImporter.onmessage = (e:MessageEvent<SynergyImporter.Message>) => {
+        switch(e.data.type) {
+          case MessageType.ImportStart:
+            rawDispatch(importStarted())
+            break;
+          case MessageType.ImportEnd:
+            rawDispatch(importCompleted())
+            break;
+          case MessageType.Record:
+            rawDispatch(addRecord(e.data.record, e.data.recordNumber))
+            break;
+        }
+      }
+      return rawDispatch;
+    }, [rawDispatch]
+  );
 
-  return [state, dispatch];
+
+  return [state, wrappedDispatch];
 }
