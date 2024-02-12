@@ -30,12 +30,12 @@ export enum MessageType {
   Unknown,
   ImportStart,
   ImportEnd,
-  Record,
+  NewRecords,
   Error,
 }
 
 export type Message = ReturnType<
-  typeof errorMessage | typeof importStart | typeof importEnd | typeof record
+  typeof errorMessage | typeof importStart | typeof importEnd | typeof importedRecords
 >
 
 function errorMessage(error:string) {
@@ -57,10 +57,10 @@ function importEnd() {
   } as const;
 }
 
-function record(record:Entry, recordNumber: number) {
+function importedRecords(records:Entry[], recordNumber: number) {
   return {
-    type: MessageType.Record,
-    record: record,
+    type: MessageType.NewRecords,
+    records: records,
     recordNumber: recordNumber,
   } as const;
 }
@@ -75,7 +75,7 @@ function parseDate(string: string):Date {
   const theDate = new Date();
   theDate.setFullYear(
     parseInt(parts[2], 10),
-    parseInt(parts[1], 10),
+    parseInt(parts[1], 10) - 1,
     parseInt(parts[0], 10)
   );
   theDate.setHours(0, 0, 1);
@@ -110,12 +110,15 @@ function parse(lineBuffer: string): Entry {
 }
 
 async function ReadData(stream:ReadableStream<Uint8Array>) {
+  const sendRecordsNum = 100;
   const decoder = new TextDecoder();
 
   let header = true;
   let lineBuffer:string | null = null;
   let remainingBuffer:Uint8Array | null = null;
+  let startingRecordNumber = 0;
   let recordNumber = 0;
+  const recordArray:Entry[] = Array(0);
 
   // @ts-ignore
   for await (const chunk:Uint8Array of stream) {
@@ -145,8 +148,13 @@ async function ReadData(stream:ReadableStream<Uint8Array>) {
         if (header) {
           if (lineBuffer.startsWith("Date,Time,kWh")) header = false;
         } else {
+          recordArray.push(parse(lineBuffer));
           recordNumber++;
-          postMessage(record(parse(lineBuffer), recordNumber))
+          if (recordArray.length >= sendRecordsNum) {
+            postMessage(importedRecords(recordArray, startingRecordNumber))
+            startingRecordNumber = recordNumber;
+            recordArray.splice(0, recordArray.length);
+          }
         }
         lineBuffer = null;
       }
@@ -154,6 +162,8 @@ async function ReadData(stream:ReadableStream<Uint8Array>) {
 
     if (offset < index) remainingBuffer = chunk.subarray(offset, index);
   }
+
+  if (recordArray.length > 0) postMessage(importedRecords(recordArray, startingRecordNumber))
 }
 
 function StartImport(file:File) {

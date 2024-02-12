@@ -5,7 +5,9 @@ import {MessageType} from "../worker/SynergyImportWorker";
 
 type State = {
   busy: boolean;
+  filename: string | null;
   records: Record[] | null;
+  showDate: Date | null;
 }
 
 type Record = {
@@ -16,10 +18,13 @@ type Record = {
 
 export const initialState:State = {
   busy: false,
+  filename: null,
   records: Array(0),
+  showDate: null,
 }
 
 enum ActionType {
+  ShowDate,
   ImportFile,
   ImportHasStarted,
   ImportHasEnded,
@@ -29,6 +34,12 @@ enum ActionType {
 export function importFile(file: File) {
   return {
     type: ActionType.ImportFile, file
+  } as const
+}
+
+export function selectDate(date:Date) {
+  return {
+    type: ActionType.ShowDate, date
   } as const
 }
 
@@ -44,26 +55,29 @@ function importCompleted() {
   } as const
 }
 
-function addRecord(record: ImportedRecord, recordNumber: number) {
+function addRecords(records: ImportedRecord[], startingRecordNumber: number) {
   return {
-    type: ActionType.ImportHasNewRecord, record, recordNumber
+    type: ActionType.ImportHasNewRecord, records, startingRecordNumber
   } as const
 }
 
 type Action = ReturnType<
-  typeof importFile | typeof importStarted | typeof importCompleted | typeof addRecord
+  typeof importFile | typeof selectDate
+  | typeof importStarted | typeof importCompleted | typeof addRecords
 >
 
 type ImportedRecord = SynergyImporter.Entry;
 
 const synergyImporter : Worker = new Worker( new URL("../worker/SynergyImportWorker.ts", import.meta.url));
 
-function AddRecordTo(records: Record[] | null, record: ImportedRecord, recordNumber: number) : Record[] {
+function AddRecords(records: Record[] | null, newRecords: ImportedRecord[], startingRecordNumber: number) : Record[] {
   if (records == null) records = Array(0);
-  if (records.length >= recordNumber) return records;
+  if (records.length > startingRecordNumber) return records;
 
-  //TODO: handle multiple import types
-  records.push({date: record.date, time: record.time, kWh: record.kWh })
+  for(let index:number = 0; index < newRecords.length; index++) {
+    const newRecord = newRecords[index];
+    records.push({date: newRecord.date, time: newRecord.time, kWh: newRecord.kWh });
+  }
 
   return records;
 }
@@ -73,6 +87,11 @@ function reducer(state:State, action:Action) {
     case ActionType.ImportFile:
       synergyImporter.postMessage(action.file);
       return state;
+    case ActionType.ShowDate:
+      return {
+        ...state,
+        showDate: action.date,
+      }
     case ActionType.ImportHasStarted:
       return {
         ...state,
@@ -87,7 +106,7 @@ function reducer(state:State, action:Action) {
     case ActionType.ImportHasNewRecord:
       return {
         ...state,
-        records: AddRecordTo(state.records, action.record, action.recordNumber),
+        records: AddRecords(state.records, action.records, action.startingRecordNumber),
       }
     default:
       return state;
@@ -107,8 +126,8 @@ export default function useUserReducer(startState = initialState): [State, React
           case MessageType.ImportEnd:
             rawDispatch(importCompleted())
             break;
-          case MessageType.Record:
-            rawDispatch(addRecord(e.data.record, e.data.recordNumber))
+          case MessageType.NewRecords:
+            rawDispatch(addRecords(e.data.records, e.data.recordNumber))
             break;
         }
       }
