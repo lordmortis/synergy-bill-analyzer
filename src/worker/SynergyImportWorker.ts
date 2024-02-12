@@ -109,7 +109,7 @@ function parse(lineBuffer: string): Entry {
   };
 }
 
-async function ReadData(stream:ReadableStream<Uint8Array>) {
+async function ReadData(reader:ReadableStreamDefaultReader<Uint8Array>) {
   const sendRecordsNum = 100;
   const decoder = new TextDecoder();
 
@@ -120,8 +120,13 @@ async function ReadData(stream:ReadableStream<Uint8Array>) {
   let recordNumber = 0;
   const recordArray:Entry[] = Array(0);
 
-  // @ts-ignore
-  for await (const chunk:Uint8Array of stream) {
+  let keepReading = true;
+  while(keepReading) {
+    let result = await reader.read();
+    if (result.done) keepReading = false;
+    if (result.value === undefined) continue;
+    const chunk= result.value;
+
     let offset = 0;
     let index = 0;
     let sawCR = false;
@@ -177,7 +182,7 @@ function StartImport(file:File) {
   state.currentFile = file.name;
 
 
-  ReadData(file.stream()).finally(() => {
+  ReadData(file.stream().getReader()).finally(() => {
     state.busy = false;
     postMessage(importEnd());
     state.currentFile = null;
