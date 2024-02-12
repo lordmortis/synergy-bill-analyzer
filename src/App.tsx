@@ -12,7 +12,17 @@ function App() {
   const importFile = (file:File) => dispatch(Actions.importFile(file));
   const selectDate = (date:Date) => dispatch(Actions.selectDate(date));
 
-  const dates = useMemo<Date[]>(() => {
+  const maxPower:number = useMemo(() => {
+    let max = 0;
+    state.records?.forEach((record) => {
+      if (record.kWh > max) max = record.kWh;
+    });
+    return max;
+    // we have to use state.records.length or this doesn't work properly...
+    //eslint-disable-next-line
+  }, [state.records, state.records?.length])
+
+  const dates = useMemo(() => {
     const dates:Date[] = Array(0);
     if (state.records == null) return dates;
     state.records.forEach((record) => {
@@ -24,6 +34,14 @@ function App() {
     //eslint-disable-next-line
   }, [state.records, state.records?.length])
 
+  const dateRecords = useMemo(() => {
+    const records:Actions.Record[] = Array(0);
+    state.records?.forEach((record) => {
+      if (state.showDate?.getTime() !== record.date.getTime()) return;
+      records.push(record);
+    })
+    return records;
+  }, [state.records, state.showDate]);
 
   return (
     <div className="App">
@@ -33,7 +51,7 @@ function App() {
           filename={state.filename}
           recordCount={state.records != null ? state.records.length : 0}
           importFile={importFile}/>
-        <BarGraph/>
+        <BarGraph records={dateRecords} maxPower={maxPower}/>
         <DateSelect dates={dates} currentDate={state.showDate} selectDate={selectDate}/>
       </header>
     </div>

@@ -78,7 +78,7 @@ function parseDate(string: string):Date {
     parseInt(parts[1], 10) - 1,
     parseInt(parts[0], 10)
   );
-  theDate.setHours(0, 0, 1);
+  theDate.setHours(0, 0, 1, 0);
   return theDate;
 }
 

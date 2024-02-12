@@ -10,7 +10,7 @@ type State = {
   showDate: Date | null;
 }
 
-type Record = {
+export type Record = {
   date: Date;
   time: number;
   kWh: number;
