@@ -82,6 +82,13 @@ function AddRecords(records: Record[] | null, newRecords: ImportedRecord[], star
   return records;
 }
 
+function SetDate(showDate: Date | null, records: Record[] | null) : Date | null {
+  if (records == null) return null;
+  if (records.length == 0) return null;
+  if (showDate != null) return showDate;
+  return records[0].date;
+}
+
 function reducer(state:State, action:Action) {
   switch(action.type) {
     case ActionType.ImportFile:
@@ -97,6 +104,7 @@ function reducer(state:State, action:Action) {
         ...state,
         busy: true,
         records: Array(0),
+        showDate: null
       }
     case ActionType.ImportHasEnded:
       return {
@@ -107,6 +115,7 @@ function reducer(state:State, action:Action) {
       return {
         ...state,
         records: AddRecords(state.records, action.records, action.startingRecordNumber),
+        showDate: SetDate(state.showDate, state.records),
       }
     default:
       return state;
