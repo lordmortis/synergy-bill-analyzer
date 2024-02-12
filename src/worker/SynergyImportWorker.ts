@@ -10,9 +10,6 @@ export type Entry = {
   date : Date;
   time : number;
   kWh : number;
-  kW : number;
-  kVA : number;
-  powerFactor: number;
   readingStatus: ReadingStatusEnum;
 }
 
@@ -96,17 +93,26 @@ function parseStatus(string: string):ReadingStatusEnum {
   }
 }
 
-function parse(lineBuffer: string): Entry {
+function parse(lineBuffer: string, sumLine: boolean): Entry {
+  lineBuffer = lineBuffer.replaceAll("\"", "");
   const parts = lineBuffer.split(",");
-  return {
-    date: parseDate(parts[0]),
-    time: parseTime(parts[1]),
-    kWh: parseFloat(parts[2]),
-    kW: parseFloat(parts[3]),
-    kVA: parseFloat(parts[4]),
-    powerFactor: parseFloat(parts[5]),
-    readingStatus: parseStatus(parts[6]),
-  };
+  if (!sumLine) {
+    return {
+      date: parseDate(parts[0]),
+      time: parseTime(parts[1]),
+      kWh: parseFloat(parts[2]),
+      readingStatus: parseStatus(parts[6]),
+    };
+  } else {
+    let kWh = 0;
+    for(let index = 2; index < parts.length - 1; index++) if (parts[index].length > 0) kWh += parseFloat(parts[index]);
+    return {
+      date: parseDate(parts[0]),
+      time: parseTime(parts[1]),
+      kWh: kWh,
+      readingStatus: parseStatus(parts[parts.length - 1]),
+    };
+  }
 }
 
 async function ReadData(reader:ReadableStreamDefaultReader<Uint8Array>) {
@@ -118,6 +124,7 @@ async function ReadData(reader:ReadableStreamDefaultReader<Uint8Array>) {
   let remainingBuffer:Uint8Array | null = null;
   let startingRecordNumber = 0;
   let recordNumber = 0;
+  let sumLine = false;
   const recordArray:Entry[] = Array(0);
 
   let keepReading = true;
@@ -151,9 +158,11 @@ async function ReadData(reader:ReadableStreamDefaultReader<Uint8Array>) {
       index++;
       if (lineBuffer != null) {
         if (header) {
-          if (lineBuffer.startsWith("Date,Time,kWh")) header = false;
+          if (lineBuffer.startsWith("Date,Time")) header = false;
+          if (lineBuffer.startsWith("\"Date\",\"Time\"")) header = false;
+          sumLine = lineBuffer.indexOf("kWh") === -1;
         } else {
-          recordArray.push(parse(lineBuffer));
+          recordArray.push(parse(lineBuffer, sumLine));
           recordNumber++;
           if (recordArray.length >= sendRecordsNum) {
             postMessage(importedRecords(recordArray, startingRecordNumber))
