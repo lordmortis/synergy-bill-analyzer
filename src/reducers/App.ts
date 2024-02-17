@@ -1,7 +1,7 @@
 import React, {useMemo, useReducer} from "react";
 
-import * as SynergyImporter from "../worker/SynergyImportWorker";
-import {MessageType} from "../worker/SynergyImportWorker";
+import * as SynergyImporter from "../worker/ImportWorker";
+import {MessageType} from "../worker/ImportWorker";
 
 type State = {
   busy: boolean;
@@ -68,7 +68,7 @@ type Action = ReturnType<
 
 type ImportedRecord = SynergyImporter.Entry;
 
-const synergyImporter : Worker = new Worker( new URL("../worker/SynergyImportWorker.ts", import.meta.url));
+const synergyImporter : Worker = new Worker( new URL("../worker/ImportWorker.ts", import.meta.url));
 
 function AddRecords(records: Record[] | null, newRecords: ImportedRecord[], startingRecordNumber: number) : Record[] {
   if (records == null) records = Array(0);
