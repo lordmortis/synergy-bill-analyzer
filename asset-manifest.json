@@ -1,17 +1,23 @@
 {
   "files": {
-    "main.css": "/synergy-bill-analyzer/static/css/main.a5b307c3.css",
-    "main.js": "/synergy-bill-analyzer/static/js/main.e924d1b1.js",
+    "main.css": "/synergy-bill-analyzer/static/css/main.3367c12b.css",
+    "main.js": "/synergy-bill-analyzer/static/js/main.1b58e59c.js",
     "static/js/199.6e82369c.chunk.js": "/synergy-bill-analyzer/static/js/199.6e82369c.chunk.js",
     "static/js/592.f8303b14.chunk.js": "/synergy-bill-analyzer/static/js/592.f8303b14.chunk.js",
+    "static/media/step3.png": "/synergy-bill-analyzer/static/media/step3.1ec9286d71cffe3a292e.png",
+    "static/media/step4.png": "/synergy-bill-analyzer/static/media/step4.d89e1508ebd8195d4033.png",
+    "static/media/step5.png": "/synergy-bill-analyzer/static/media/step5.68a1d0991e5b5f4e8d6c.png",
+    "static/media/step8b.png": "/synergy-bill-analyzer/static/media/step8b.21e4a0cf4cbc82ff12d2.png",
+    "static/media/step2.png": "/synergy-bill-analyzer/static/media/step2.a9434975e623d69d608b.png",
+    "static/media/step8a.png": "/synergy-bill-analyzer/static/media/step8a.745aa39dccaea35ce21e.png",
     "index.html": "/synergy-bill-analyzer/index.html",
-    "main.a5b307c3.css.map": "/synergy-bill-analyzer/static/css/main.a5b307c3.css.map",
-    "main.e924d1b1.js.map": "/synergy-bill-analyzer/static/js/main.e924d1b1.js.map",
+    "main.3367c12b.css.map": "/synergy-bill-analyzer/static/css/main.3367c12b.css.map",
+    "main.1b58e59c.js.map": "/synergy-bill-analyzer/static/js/main.1b58e59c.js.map",
     "199.6e82369c.chunk.js.map": "/synergy-bill-analyzer/static/js/199.6e82369c.chunk.js.map",
     "592.f8303b14.chunk.js.map": "/synergy-bill-analyzer/static/js/592.f8303b14.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.a5b307c3.css",
-    "static/js/main.e924d1b1.js"
+    "static/css/main.3367c12b.css",
+    "static/js/main.1b58e59c.js"
   ]
 }
