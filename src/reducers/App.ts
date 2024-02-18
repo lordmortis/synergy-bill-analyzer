@@ -76,7 +76,7 @@ function AddRecords(records: Record[] | null, newRecords: ImportedRecord[], star
 
   for(let index:number = 0; index < newRecords.length; index++) {
     const newRecord = newRecords[index];
-    records.push({date: newRecord.date, time: newRecord.time, kWh: newRecord.kWh });
+    records.push({date: newRecord.date, time: newRecord.time, kWh: newRecord.kWhIn });
   }
 
   return records;

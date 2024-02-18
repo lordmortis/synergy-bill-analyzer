@@ -1,17 +1,19 @@
+import SynergyProcessor from './format/Synergy'
+
+import {Entry, Processor} from "./format/Types";
+import {debug} from "node:util";
+
+export type {Entry} from "./format/Types";
+
 const LFVal:number = 0x0A;
 const CRVal:number = 0x0D;
 
-export enum ReadingStatusEnum {
-  unknown,
-  actual
-}
+const sendRecordsNum = 100;
+const decoder = new TextDecoder();
 
-export type Entry = {
-  date : Date;
-  time : number;
-  kWh : number;
-  readingStatus: ReadingStatusEnum;
-}
+const processors:Processor[] = [
+  new SynergyProcessor(),
+];
 
 type State = {
   busy : boolean,
@@ -67,117 +69,72 @@ function postMessage(message:Message) {
   self.postMessage(message);
 }
 
-function parseDate(string: string):Date {
-  const parts = string.split("/");
-  const theDate = new Date();
-  theDate.setFullYear(
-    parseInt(parts[2], 10),
-    parseInt(parts[1], 10) - 1,
-    parseInt(parts[0], 10)
-  );
-  theDate.setHours(0, 0, 1, 0);
-  return theDate;
-}
-
-function parseTime(string: string):number {
-  const parts = string.split(":");
-  let time = parseInt(parts[0], 10);
-  if (parts[1] === "30") time += 0.5;
-  return time;
-}
-
-function parseStatus(string: string):ReadingStatusEnum {
-  switch(string.toLowerCase()) {
-    case "actual": return ReadingStatusEnum.actual;
-    default: return ReadingStatusEnum.unknown;
-  }
-}
-
-function parse(lineBuffer: string, sumLine: boolean): Entry {
-  lineBuffer = lineBuffer.replaceAll("\"", "");
-  const parts = lineBuffer.split(",");
-  if (!sumLine) {
-    return {
-      date: parseDate(parts[0]),
-      time: parseTime(parts[1]),
-      kWh: parseFloat(parts[2]),
-      readingStatus: parseStatus(parts[6]),
-    };
-  } else {
-    let kWh = 0;
-    for(let index = 2; index < parts.length - 1; index++) if (parts[index].length > 0) kWh += parseFloat(parts[index]);
-    return {
-      date: parseDate(parts[0]),
-      time: parseTime(parts[1]),
-      kWh: kWh,
-      readingStatus: parseStatus(parts[parts.length - 1]),
-    };
-  }
-}
-
 async function ReadData(reader:ReadableStreamDefaultReader<Uint8Array>) {
-  const sendRecordsNum = 100;
-  const decoder = new TextDecoder();
-
-  let header = true;
-  let lineBuffer:string | null = null;
-  let remainingBuffer:Uint8Array | null = null;
-  let startingRecordNumber = 0;
-  let recordNumber = 0;
-  let sumLine = false;
-  const recordArray:Entry[] = Array(0);
+  const recordArray: Entry[] = Array(0);
+  let recordCount = 0;
+  let remainingBuffer: Uint8Array | null = null;
+  let currentLineBuffer: string | null = null;
+  let currentProcessor: Processor | null = null;
 
   let keepReading = true;
-  while(keepReading) {
-    let result = await reader.read();
-    if (result.done) keepReading = false;
-    if (result.value === undefined) continue;
-    const chunk= result.value;
+  while (keepReading) {
+    let newRead = await reader.read()
+    if (newRead.done) keepReading = false;
+    if (newRead.value === undefined) continue;
+    const newData = newRead.value;
 
     let offset = 0;
     let index = 0;
     let sawCR = false;
-    if (chunk.length === 0) continue;
-    while(index <= chunk.length) {
-      if (chunk[index] === CRVal) {
-        sawCR = true;
-      } else if (chunk[index] === LFVal) {
-        let decodeArray:Uint8Array;
-        if (remainingBuffer != null) {
-          decodeArray = new Uint8Array(remainingBuffer.length + (sawCR ? index - 1 : index - offset));
-          decodeArray.set(remainingBuffer, 0);
-          decodeArray.set(chunk.subarray(offset, sawCR ? index - 1 : index), remainingBuffer.length);
-          remainingBuffer = null;
-        } else {
-          decodeArray = chunk.subarray(offset, sawCR ? index - 1 : index);
-        }
-        if (offset < index) lineBuffer = decoder.decode(decodeArray);
-        offset = index + 1;
-        sawCR = false;
+    if (newData.length === 0) continue;
+    while (index <= newData.length) {
+      switch (newData[index]) {
+        case CRVal:
+          sawCR = true;
+          break;
+        case LFVal:
+          let decodeArray: Uint8Array;
+          if (remainingBuffer != null) {
+            decodeArray = new Uint8Array(remainingBuffer.length + (sawCR ? index - 1 : index - offset));
+            decodeArray.set(remainingBuffer, 0);
+            decodeArray.set(newData.subarray(offset, sawCR ? index - 1 : index), remainingBuffer.length);
+            remainingBuffer = null;
+          } else {
+            decodeArray = newData.subarray(offset, sawCR ? index - 1 : index);
+          }
+          if (offset < index) currentLineBuffer = decoder.decode(decodeArray);
+          offset = index + 1;
+          sawCR = false;
+          break;
       }
       index++;
-      if (lineBuffer != null) {
-        if (header) {
-          if (lineBuffer.startsWith("Date,Time")) header = false;
-          if (lineBuffer.startsWith("\"Date\",\"Time\"")) header = false;
-          sumLine = lineBuffer.indexOf("kWh") === -1;
-        } else {
-          recordArray.push(parse(lineBuffer, sumLine));
-          recordNumber++;
-          if (recordArray.length >= sendRecordsNum) {
-            postMessage(importedRecords(recordArray, startingRecordNumber))
-            startingRecordNumber = recordNumber;
-            recordArray.splice(0, recordArray.length);
+      if (currentLineBuffer == null) continue;
+      currentLineBuffer = currentLineBuffer.replaceAll("\"", "");
+      currentLineBuffer = currentLineBuffer.toLowerCase();
+      const currentLine = currentLineBuffer.split(",");
+      currentLineBuffer = null;
+
+      if (currentProcessor == null) {
+        for (const processor of processors) {
+          if (processor.headerFound(currentLine)) {
+            currentProcessor = processor;
           }
         }
-        lineBuffer = null;
+      } else {
+        const newRecord = currentProcessor.processLine(currentLine);
+        if (newRecord != null) recordArray.push(newRecord);
       }
-    }
 
-    if (offset < index) remainingBuffer = chunk.subarray(offset, index);
+    }
+    if (offset < index) remainingBuffer = newData.subarray(offset, index);
+    if (recordArray.length < sendRecordsNum) continue;
+    postMessage(importedRecords(recordArray, recordCount));
+    recordCount += recordArray.length;
+    recordArray.splice(0);
   }
 
-  if (recordArray.length > 0) postMessage(importedRecords(recordArray, startingRecordNumber))
+  if (recordArray.length === 0) return;
+  postMessage(importedRecords(recordArray, recordCount));
 }
 
 function StartImport(file:File) {
@@ -189,7 +146,6 @@ function StartImport(file:File) {
   postMessage(importStart());
   state.busy = true;
   state.currentFile = file.name;
-
 
   ReadData(file.stream().getReader()).finally(() => {
     state.busy = false;
