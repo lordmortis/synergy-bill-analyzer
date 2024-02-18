@@ -1,17 +1,17 @@
 {
   "files": {
     "main.css": "/synergy-bill-analyzer/static/css/main.a5b307c3.css",
-    "main.js": "/synergy-bill-analyzer/static/js/main.6bcd7b86.js",
-    "static/js/156.487182a6.chunk.js": "/synergy-bill-analyzer/static/js/156.487182a6.chunk.js",
+    "main.js": "/synergy-bill-analyzer/static/js/main.e924d1b1.js",
+    "static/js/199.6e82369c.chunk.js": "/synergy-bill-analyzer/static/js/199.6e82369c.chunk.js",
     "static/js/592.f8303b14.chunk.js": "/synergy-bill-analyzer/static/js/592.f8303b14.chunk.js",
     "index.html": "/synergy-bill-analyzer/index.html",
     "main.a5b307c3.css.map": "/synergy-bill-analyzer/static/css/main.a5b307c3.css.map",
-    "main.6bcd7b86.js.map": "/synergy-bill-analyzer/static/js/main.6bcd7b86.js.map",
-    "156.487182a6.chunk.js.map": "/synergy-bill-analyzer/static/js/156.487182a6.chunk.js.map",
+    "main.e924d1b1.js.map": "/synergy-bill-analyzer/static/js/main.e924d1b1.js.map",
+    "199.6e82369c.chunk.js.map": "/synergy-bill-analyzer/static/js/199.6e82369c.chunk.js.map",
     "592.f8303b14.chunk.js.map": "/synergy-bill-analyzer/static/js/592.f8303b14.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.a5b307c3.css",
-    "static/js/main.6bcd7b86.js"
+    "static/js/main.e924d1b1.js"
   ]
 }
