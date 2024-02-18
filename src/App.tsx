@@ -4,6 +4,8 @@ import './App.css';
 import BarGraph from "./components/BarGraph";
 import DateSelect from "./components/DateSelect";
 import FileInput from "./components/FileInput";
+import Help from "./components/Help";
+
 import Reducer, * as Actions from "./reducers/App";
 import {Entry} from "./worker/format/Types";
 
@@ -16,6 +18,7 @@ type GraphData = {
 
 function App() {
   const [state, dispatch] = Reducer();
+  const [showHelp, setShowHelp] = useState(false);
   const [showPowerIn, setShowPowerIn] = useState(true);
   const [showPowerOut, setShowPowerOut] = useState(false);
 
@@ -61,33 +64,45 @@ function App() {
     return records;
   }, [state.records, state.showDate]);
 
-  return (
-    <div className="App">
-      <FileInput
-        busy={state.busy}
-        filename={state.filename}
-        recordCount={state.records != null ? state.records.length : 0}
-        importFile={importFile}/>
-      <div>
-        <div key="Show Inputs">
-          <input type="checkbox" checked={showPowerIn} disabled={!graphData.inValues} onClick={() => setShowPowerIn(!showPowerIn)}/>
-          Show Power In
-        </div>
-        <div key="Show Outputs">
-          <input type="checkbox" checked={showPowerOut} disabled={!graphData.outValues} onClick={() => setShowPowerOut(!showPowerOut)}/>
-          Show Power Out
-        </div>
+  if (showHelp) {
+    return (
+      <div className="help">
+        <Help/>
+        <button onClick={() => setShowHelp(false)}>Back to App</button>
       </div>
-      <BarGraph
-        records={dateRecords}
-        maxInPower={graphData.maxIn}
-        maxOutPower={graphData.maxOut}
-        showInPower={showPowerIn}
-        showOutPower={showPowerOut}
-      />
-      <DateSelect dates={dates} currentDate={state.showDate} selectDate={selectDate}/>
-    </div>
-  );
+    );
+  } else {
+    return (
+      <div className="App">
+      <button onClick={() => setShowHelp(true)}>Help</button>
+        <FileInput
+          busy={state.busy}
+          filename={state.filename}
+          recordCount={state.records != null ? state.records.length : 0}
+          importFile={importFile}/>
+        <div>
+          <div key="Show Inputs">
+            <input type="checkbox" checked={showPowerIn} disabled={!graphData.inValues}
+                   onClick={() => setShowPowerIn(!showPowerIn)}/>
+            Show Power In
+          </div>
+          <div key="Show Outputs">
+            <input type="checkbox" checked={showPowerOut} disabled={!graphData.outValues}
+                   onClick={() => setShowPowerOut(!showPowerOut)}/>
+            Show Power Out
+          </div>
+        </div>
+        <BarGraph
+          records={dateRecords}
+          maxInPower={graphData.maxIn}
+          maxOutPower={graphData.maxOut}
+          showInPower={showPowerIn}
+          showOutPower={showPowerOut}
+        />
+        <DateSelect dates={dates} currentDate={state.showDate} selectDate={selectDate}/>
+      </div>
+    );
+  }
 }
 
 export default App;

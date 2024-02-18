@@ -146,7 +146,10 @@ export default function BarGraph(props:IProps) : React.ReactElement {
     const yAxis = findOrAppend(gElem, "g", "yAxis");
     yAxis.call(d3.axisLeft(y).ticks(4));
 
-  }, [props.records, props.maxInPower, margin.left, margin.top, width, height, x, y]);
+  }, [
+    props.records, props.maxInPower, props.maxOutPower, props.showOutPower, props.showInPower,
+     margin.left, margin.top, width, height, x, y
+  ]);
 
 
   // @ts-ignore

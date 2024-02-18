@@ -95,7 +95,7 @@ function headerMatches(headerFields: string[], line: string[]) {
   return true;
 }
 
-export default class implements Processor {
+export class SynergyProcessor implements Processor {
   private currentFileType: FileType | null = null;
 
   public reset() {

@@ -1,7 +1,6 @@
-import SynergyProcessor from './format/Synergy'
+import {SynergyProcessor} from './format/Synergy'
 
 import {Entry, Processor} from "./format/Types";
-import {debug} from "node:util";
 
 export type {Entry} from "./format/Types";
 

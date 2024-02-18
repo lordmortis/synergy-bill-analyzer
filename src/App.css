@@ -1,8 +1,3 @@
-body {
-  height: 100vh;
-  width: 100vw;
-}
-
 div#root {
   width: 100%;
   height: 90%;
@@ -40,4 +35,23 @@ div#tooltip {
   pointer-events: none;
   font-size: .7rem;
   z-index: 100;
+}
+
+div.help {
+  max-width: 60%;
+  text-align: left;
+  margin: 5px;
+}
+
+div.helpSection {
+  margin: 10px 10px 10px 10px;
+}
+
+div.images {
+  display: flex;
+  flex-direction: row;
+}
+
+div.images a {
+  margin: 10px;
 }
