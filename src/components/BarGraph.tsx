@@ -1,6 +1,7 @@
 import React, {useEffect, useRef} from "react";
 import * as d3 from "d3";
-import { Record } from "../reducers/App";
+import { Entry } from "../worker/ImportWorker";
+import {max} from "d3";
 
 function findOrAppend(parent: d3.Selection<SVGSVGElement | SVGGElement, unknown, null, undefined>, type: string, className: string): d3.Selection<SVGGElement, unknown, null, undefined> {
   let searchVal = parent.select(`${type}.${className}`);
@@ -14,11 +15,14 @@ function findOrAppend(parent: d3.Selection<SVGSVGElement | SVGGElement, unknown,
 }
 
 interface IProps {
-  records: Record[];
-  maxPower: number;
+  records: Entry[];
+  maxInPower: number;
+  maxOutPower: number;
+  showInPower: boolean;
+  showOutPower: boolean;
 }
 
-function convertRecordTime(record:Record): string {
+function convertRecordTime(record:Entry): string {
   const time = record.time;
   const hourPart = Math.trunc(time).toLocaleString("en-AU", {minimumIntegerDigits: 2});
   const minutePart = (time % 1) > 0.01 ? "30" : "00";;
@@ -47,27 +51,36 @@ export default function BarGraph(props:IProps) : React.ReactElement {
     gElem.attr("transform", `translate(${margin.left},${margin.top})`)
 
     x.domain(props.records.map(convertRecordTime));
-    y.domain([0, props.maxPower]);
+    if (props.showInPower) y.domain([0, props.maxInPower]);
+    if (props.showOutPower) y.domain([0, props.maxOutPower]);
+    if (props.showInPower && props.showOutPower) {
+      let maxPower = max([props.maxInPower, props.maxOutPower]);
+      if (maxPower === undefined) maxPower = 0;
+      y.domain([0, maxPower]);
+    }
     y.nice();
 
-    gElem.selectAll(".bar")
+    const xWidth:number = (props.showInPower && props.showOutPower) ? (x.bandwidth()) / 2 : x.bandwidth();
+
+    gElem.selectAll(".barIn")
       .data(props.records)
       .join(
         (enter) =>
           enter.append("rect")
-            .attr("class", "bar")
+            .attr("fill", "#7036EC")
+            .attr("class", "barIn")
             .attr("x", (elem):number => x(convertRecordTime(elem)) !== undefined ? x(convertRecordTime(elem)) as number : 0)
-            .attr("y", (elem) => y(elem.kWh))
-            .attr("width", x.bandwidth)
-            .attr("height", (elem) => height - y(elem.kWh))
+            .attr("y", (elem) => props.showInPower ? y(elem.kWhIn): height)
+            .attr("width", xWidth)
+            .attr("height", (elem) => props.showInPower ? height - y(elem.kWhIn): 0)
             .on('mouseover',
               function (d, record) {
                 d3.select(this).transition().duration(50).attr('opacity', '.5');
                 toolTipElement.style('opacity', 1)
                   .style('left', `${d.clientX + 10}px`)
                   .style('top', `${d.clientY + 10}px`)
-                  .text(`${record.kWh} kWh - ${convertRecordTime(record)}`)
-            })
+                  .text(`${record.kWhIn} kWh - ${convertRecordTime(record)}`)
+              })
             .on('mouseout',
               function(d, record) {
                 d3.select(this).transition().duration(50).attr('opacity', '1')
@@ -76,9 +89,49 @@ export default function BarGraph(props:IProps) : React.ReactElement {
         , update =>
           update.transition().duration(750)
             .attr("x", (elem):number => x(convertRecordTime(elem)) !== undefined ? x(convertRecordTime(elem)) as number : 0)
-            .attr("y", (elem) => y(elem.kWh))
-            .attr("width", x.bandwidth)
-            .attr("height", (elem) => height - y(elem.kWh))
+            .attr("y", (elem) => props.showInPower ? y(elem.kWhIn): height)
+            .attr("width", xWidth)
+            .attr("height", (elem) => props.showInPower ? height - y(elem.kWhIn): 0)
+      )
+
+    gElem.selectAll(".barOut")
+      .data(props.records)
+      .join(
+        (enter) =>
+          enter.append("rect")
+            .attr("fill", "#A3E415")
+            .attr("class", "barOut")
+            .attr("x", (elem):number => {
+              const convertedVal = x(convertRecordTime(elem));
+              if (convertedVal === undefined) return 0;
+              return props.showInPower ? convertedVal + x.bandwidth() / 2 : convertedVal;
+            })
+            .attr("y", (elem) => props.showOutPower ? y(elem.kWhOut): height)
+            .attr("width", xWidth)
+            .attr("height", (elem) => props.showOutPower ? height - y(elem.kWhOut): 0)
+            .on('mouseover',
+              function (d, record) {
+                d3.select(this).transition().duration(50).attr('opacity', '.5');
+                toolTipElement.style('opacity', 1)
+                  .style('left', `${d.clientX + 10}px`)
+                  .style('top', `${d.clientY + 10}px`)
+                  .text(`${record.kWhIn} kWh - ${convertRecordTime(record)}`)
+              })
+            .on('mouseout',
+              function(d, record) {
+                d3.select(this).transition().duration(50).attr('opacity', '1')
+                toolTipElement.style('opacity', 0);
+              })
+        , update =>
+          update.transition().duration(750)
+            .attr("x", (elem):number => {
+              const convertedVal = x(convertRecordTime(elem));
+              if (convertedVal === undefined) return 0;
+              return props.showInPower ? convertedVal + x.bandwidth() / 2 : convertedVal;
+            })
+            .attr("y", (elem) => props.showOutPower ? y(elem.kWhOut): height)
+            .attr("width", xWidth)
+            .attr("height", (elem) => props.showOutPower ? height - y(elem.kWhOut): 0)
       )
 
     const xAxis = findOrAppend(gElem, "g", "xAxis");
@@ -93,7 +146,7 @@ export default function BarGraph(props:IProps) : React.ReactElement {
     const yAxis = findOrAppend(gElem, "g", "yAxis");
     yAxis.call(d3.axisLeft(y).ticks(4));
 
-  }, [props.records, props.maxPower, margin.left, margin.top, width, height, x, y]);
+  }, [props.records, props.maxInPower, margin.left, margin.top, width, height, x, y]);
 
 
   // @ts-ignore

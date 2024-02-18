@@ -1,19 +1,14 @@
 import React, {useMemo, useReducer} from "react";
 
 import * as SynergyImporter from "../worker/ImportWorker";
-import {MessageType} from "../worker/ImportWorker";
+import { MessageType } from "../worker/ImportWorker";
+import { Entry } from "../worker/ImportWorker"
 
 type State = {
   busy: boolean;
   filename: string | null;
-  records: Record[] | null;
+  records: Entry[] | null;
   showDate: Date | null;
-}
-
-export type Record = {
-  date: Date;
-  time: number;
-  kWh: number;
 }
 
 export const initialState:State = {
@@ -70,19 +65,18 @@ type ImportedRecord = SynergyImporter.Entry;
 
 const synergyImporter : Worker = new Worker( new URL("../worker/ImportWorker.ts", import.meta.url));
 
-function AddRecords(records: Record[] | null, newRecords: ImportedRecord[], startingRecordNumber: number) : Record[] {
+function AddRecords(records: Entry[] | null, newRecords: ImportedRecord[], startingRecordNumber: number) : Entry[] {
   if (records == null) records = Array(0);
   if (records.length > startingRecordNumber) return records;
 
   for(let index:number = 0; index < newRecords.length; index++) {
-    const newRecord = newRecords[index];
-    records.push({date: newRecord.date, time: newRecord.time, kWh: newRecord.kWhIn });
+    records.push(newRecords[index]);
   }
 
   return records;
 }
 
-function SetDate(showDate: Date | null, records: Record[] | null) : Date | null {
+function SetDate(showDate: Date | null, records: Entry[] | null) : Date | null {
   if (records == null) return null;
   if (records.length === 0) return null;
   if (showDate != null) return showDate;
