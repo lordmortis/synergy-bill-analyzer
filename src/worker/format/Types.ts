@@ -1,6 +1,7 @@
 export enum ReadingStatusEnum {
-  unknown,
-  actual
+  Unknown,
+  NotAvailable,
+  Actual
 }
 
 export type Entry = {
