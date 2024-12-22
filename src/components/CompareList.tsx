@@ -27,7 +27,7 @@ function renderClearSelected(props: IProps) {
 }
 
 
-function renderButton(props: IProps,
+function renderStoreState(props: IProps,
                       key: string,
                       deleteConfirm: string,
                       setDeleteConfirm: (value: (((prevState: string) => string) | string)) => void){
@@ -35,10 +35,10 @@ function renderButton(props: IProps,
   function handleDeleteFinalClick(_:MouseEvent<HTMLButtonElement>) { props.deleteDate(key); }
   function handleDeleteFirstClick(_:MouseEvent<HTMLButtonElement>) { setDeleteConfirm(key); }
   if (deleteConfirm === key) {
-    return <button onClick={handleDeleteFinalClick}>Really Delete {key} ?</button>
+    return <div className="compareElem"><button onClick={handleDeleteFinalClick}>Really Delete {key} ?</button></div>
   }
 
-  return <div>
+  return <div className="compareElem">
     <button disabled={props.selectedRecord === key} onClick={handleSelectClick}>{key}</button>
     <button onClick={handleDeleteFirstClick}>Delete</button>
   </div>
@@ -52,6 +52,6 @@ export default function CompareList(props:IProps) : React.ReactElement {
 
   if (props.currentDate != null) parts.push(renderStorageForm(props, storageName, setStorageName));
   if (props.selectedRecord != null) parts.push(renderClearSelected(props));
-  props.records?.forEach((_, key) => parts.push(renderButton(props, key, deleteConfirm, setDeleteConfirm)));
-  return <div>{parts}</div>;
+  props.records?.forEach((_, key) => parts.push(renderStoreState(props, key, deleteConfirm, setDeleteConfirm)));
+  return <div className="compareList">{parts}</div>;
 }

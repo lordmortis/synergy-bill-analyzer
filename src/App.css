@@ -14,6 +14,18 @@ div#root {
   justify-content: center;
 }
 
+.App div#headerControls {
+  display: flex;
+}
+
+.App div#headerControls div.panel {
+  max-width: 50%
+}
+
+div.compareList {
+  display: flex;
+}
+
 .App div#graph {
   width: 90%;
   flex: 1;

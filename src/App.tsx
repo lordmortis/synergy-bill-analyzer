@@ -67,6 +67,14 @@ function App() {
     return state.showDate == null ? new Map<number, Types.PowerEntry>() : state.records?.get(state.showDate.getTime());
   }, [state.records, state.showDate]);
 
+  const compareRecords = useMemo(() => {
+    if (state.compareRecords == null) return null;
+    if (state.selectedCompareRecord == null) return null;
+    const records = state.compareRecords.get(state.selectedCompareRecord);
+    if (records == null) return null;
+    return records;
+  }, [state.selectedCompareRecord, state.compareRecords]);
+
   if (showHelp) {
     return (
       <div className="help">
@@ -78,39 +86,47 @@ function App() {
     return (
       <div className="App">
       <button onClick={() => setShowHelp(true)}>Help</button>
-        <FileInput
-          busy={state.busy}
-          filename={state.filename}
-          recordCount={state.records != null ? state.records.size : 0}
-          importFile={importFile}/>
-        <div>
-          <div key="Show Inputs">
-            <input type="checkbox" checked={showPowerIn} disabled={!graphData.inValues}
-                   onClick={() => setShowPowerIn(!showPowerIn)}/>
-            Show Power In
+        <div id="headerControls">
+          <div className="headerPanel">
+            <FileInput
+              busy={state.busy}
+              filename={state.filename}
+              recordCount={state.records != null ? state.records.size : 0}
+              importFile={importFile}/>
+            <div>
+              <div key="Show Inputs">
+                <input type="checkbox" checked={showPowerIn} disabled={!graphData.inValues}
+                       onClick={() => setShowPowerIn(!showPowerIn)}/>
+                Show Power In
+              </div>
+              <div key="Show Outputs">
+                <input type="checkbox" checked={showPowerOut} disabled={!graphData.outValues}
+                       onClick={() => setShowPowerOut(!showPowerOut)}/>
+                Show Power Out
+              </div>
+            </div>
           </div>
-          <div key="Show Outputs">
-            <input type="checkbox" checked={showPowerOut} disabled={!graphData.outValues}
-                   onClick={() => setShowPowerOut(!showPowerOut)}/>
-            Show Power Out
+          <div className="panel">
+            Compare List
+            <CompareList
+              currentDate={state.showDate}
+              records={state.compareRecords}
+              selectedRecord={state.selectedCompareRecord}
+              selectRecord={compareDate}
+              storeDate={storeDate}
+              deleteDate={deleteDate}
+            />
           </div>
         </div>
         <BarGraph
           records={dateRecords}
+          compareRecords={compareRecords}
           maxInPower={graphData.maxIn}
           maxOutPower={graphData.maxOut}
           showInPower={showPowerIn}
           showOutPower={showPowerOut}
         />
         <DateSelect dates={dates} currentDate={state.showDate} selectDate={selectDate}/>
-        <CompareList
-          currentDate={state.showDate}
-          records={state.compareRecords}
-          selectedRecord={state.selectedCompareRecord}
-          selectRecord={compareDate}
-          storeDate={storeDate}
-          deleteDate={deleteDate}
-        />
       </div>
     );
   }

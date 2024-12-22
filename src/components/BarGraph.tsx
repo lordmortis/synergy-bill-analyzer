@@ -16,6 +16,7 @@ function findOrAppend(parent: d3.Selection<SVGSVGElement | SVGGElement, unknown,
 
 interface IProps {
   records: Types.DateEntries | undefined;
+  compareRecords: Types.DateEntries | null;
   maxInPower: number;
   maxOutPower: number;
   showInPower: boolean;
@@ -26,6 +27,17 @@ function convertRecordTime(entry:Types.PowerEntry): string {
   const hourPart = Math.trunc(entry.hour).toLocaleString("en-AU", {minimumIntegerDigits: 2});
   const minutePart = (entry.hour % 1) > 0.01 ? "30" : "00";
   return `${hourPart}:${minutePart}`;
+}
+
+function getkWhIn(elem: any, compareRecords: Types.DateEntries | null) : number {
+  if (compareRecords != null) {
+    const compareRecord = compareRecords.get(elem.hour);
+    if (compareRecord != null) {
+      return elem.kWhIn - compareRecord.kWhIn;
+    }
+  }
+
+  return elem.kWhIn;
 }
 
 export default function BarGraph(props:IProps) : React.ReactElement {
@@ -73,9 +85,9 @@ export default function BarGraph(props:IProps) : React.ReactElement {
             .attr("fill", "#7036EC")
             .attr("class", "barIn")
             .attr("x", (elem):number => x(convertRecordTime(elem)) !== undefined ? x(convertRecordTime(elem)) as number : 0)
-            .attr("y", (elem) => props.showInPower ? y(elem.kWhIn): height)
+            .attr("y", (elem) => props.showInPower ? y(getkWhIn(elem, props.compareRecords)) : height)
             .attr("width", xWidth)
-            .attr("height", (elem) => props.showInPower ? height - y(elem.kWhIn): 0)
+            .attr("height", (elem) => props.showInPower ? height - y(getkWhIn(elem, props.compareRecords)): 0)
             .on('mouseover',
               function (d, record) {
                 d3.select(this).transition().duration(50).attr('opacity', '.5');
@@ -92,9 +104,9 @@ export default function BarGraph(props:IProps) : React.ReactElement {
         , update =>
           update.transition().duration(750)
             .attr("x", (elem):number => x(convertRecordTime(elem)) !== undefined ? x(convertRecordTime(elem)) as number : 0)
-            .attr("y", (elem) => props.showInPower ? y(elem.kWhIn): height)
+            .attr("y", (elem) => props.showInPower ? y(getkWhIn(elem, props.compareRecords)): height)
             .attr("width", xWidth)
-            .attr("height", (elem) => props.showInPower ? height - y(elem.kWhIn): 0)
+            .attr("height", (elem) => props.showInPower ? height - y(getkWhIn(elem, props.compareRecords)): 0)
       )
 
     gElem.selectAll(".barOut")
@@ -149,8 +161,7 @@ export default function BarGraph(props:IProps) : React.ReactElement {
     const yAxis = findOrAppend(gElem, "g", "yAxis");
     yAxis.call(d3.axisLeft(y).ticks(4));
 
-  }, [
-    props.records, props.maxInPower, props.maxOutPower, props.showOutPower, props.showInPower,
+  }, [props.compareRecords, props.records, props.maxInPower, props.maxOutPower, props.showOutPower, props.showInPower,
      margin.left, margin.top, width, height, x, y
   ]);
 
