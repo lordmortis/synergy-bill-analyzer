@@ -10,6 +10,7 @@ type State = {
   records: Types.ParsedRecords;
   recordsProcessed: number;
   compareRecords: Types.CompareRecords;
+  selectedCompareRecord: string | null;
   showDate: Date | null;
 }
 
@@ -19,6 +20,7 @@ export const initialState:State = {
   records: new Map<number, Types.DateEntries>(),
   recordsProcessed: 0,
   compareRecords: new Map<string, Types.DateEntries>(),
+  selectedCompareRecord: null,
   showDate: null,
 }
 
@@ -57,7 +59,7 @@ export function deleteDate(name:string) {
   } as const
 }
 
-export function compareDate(name:string) {
+export function compareDate(name:string | null) {
   return {
     type: ActionType.CompareDate, name
   } as const
@@ -133,6 +135,7 @@ function reducer(state:State, action:Action) {
         records: new Map<number, Types.DateEntries>(),
         recordsProcessed: 0,
         compareRecords: new Map<string, Types.DateEntries>(),
+        selectedCompareRecord: null,
         showDate: null
       }
     case ActionType.ImportHasEnded:
@@ -162,6 +165,16 @@ function reducer(state:State, action:Action) {
         ...state,
         compareRecords: state.compareRecords,
       }
+      case ActionType.CompareDate:
+        if (state.compareRecords == null) return state;
+        if (action.name != null) {
+          const records = state.compareRecords.get(action.name);
+          if (records == null) return state;
+        }
+        return {
+          ...state,
+          selectedCompareRecord: action.name,
+        }
     default:
       return state;
   }
