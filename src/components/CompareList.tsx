@@ -5,6 +5,7 @@ interface IProps {
   currentDate: Date | null;
   records: CompareRecords | null;
   storeDate: (date:Date, name:string)=>void;
+  deleteDate: (id:string) => void;
 }
 
 function renderStorageForm(currentDate: Date,
@@ -19,11 +20,29 @@ function renderStorageForm(currentDate: Date,
   </div>
 }
 
+function renderButton(key: string,
+                      deleteConfirm: string,
+                      setDeleteConfirm: (value: (((prevState: string) => string) | string)) => void,
+                      deleteDate: (id: string) => void) {
+  function handleDeleteFinalClick(_:MouseEvent<HTMLButtonElement>) { deleteDate(key); }
+  function handleDeleteFirstClick(_:MouseEvent<HTMLButtonElement>) { setDeleteConfirm(key); }
+  if (deleteConfirm === key) {
+    return <button onClick={handleDeleteFinalClick}>Really Delete {key} ?</button>
+  }
+
+  return <div>
+    <button>{key}</button>
+    <button onClick={handleDeleteFirstClick}>Delete</button>
+  </div>
+
+}
+
 export default function CompareList(props:IProps) : React.ReactElement {
   const parts:React.ReactElement[] = [];
   const [storageName, setStorageName] = React.useState("");
+  const [deleteConfirm, setDeleteConfirm] = React.useState("");
 
   if (props.currentDate != null) parts.push(renderStorageForm(props.currentDate, storageName, setStorageName, props.storeDate));
-  props.records?.forEach((_, key) => parts.push(<button>{key}</button>));
+  props.records?.forEach((_, key) => parts.push(renderButton(key, deleteConfirm, setDeleteConfirm, props.deleteDate)));
   return <div>{parts}</div>;
 }

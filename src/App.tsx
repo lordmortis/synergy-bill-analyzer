@@ -27,6 +27,7 @@ function App() {
   const importFile = (file:File) => dispatch(Actions.importFile(file));
   const selectDate = (date:Date) => dispatch(Actions.selectDate(date));
   const storeDate = (date:Date, name:string) => dispatch(Actions.storeDate(date, name));
+  const deleteDate = (name:string) => dispatch(Actions.deleteDate(name));
 
   const graphData:GraphData = useMemo(() => {
     const retVal:GraphData = {
@@ -105,6 +106,7 @@ function App() {
           currentDate={state.showDate}
           records={state.compareRecords}
           storeDate={storeDate}
+          deleteDate={deleteDate}
         />
       </div>
     );

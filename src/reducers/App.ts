@@ -84,7 +84,7 @@ function addRecords(records: ImportedRecord[], startingRecordNumber: number) {
 type Action = ReturnType<
   typeof importFile | typeof selectDate
   | typeof importStarted | typeof importCompleted | typeof addRecords
-  | typeof storeDate //| typeof deleteDate | typeof compareDate
+  | typeof storeDate | typeof deleteDate | typeof compareDate
 >
 
 type ImportedRecord = WorkerTypes.ProcessedEntry;
@@ -151,6 +151,13 @@ function reducer(state:State, action:Action) {
       const dateRecords = state.records.get(action.date.getTime());
       if (dateRecords == null) return state;
       state.compareRecords.set(action.name, dateRecords);
+      return {
+        ...state,
+        compareRecords: state.compareRecords,
+      }
+    case ActionType.DeleteDate:
+      if (state.compareRecords == null) return state;
+      state.compareRecords.delete(action.name)
       return {
         ...state,
         compareRecords: state.compareRecords,
