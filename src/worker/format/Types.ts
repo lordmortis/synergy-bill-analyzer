@@ -12,8 +12,16 @@ export type Entry = {
   readingStatus: ReadingStatusEnum;
 }
 
+export interface ExtraFields {
+  date : Date;
+  time : number;
+  readingStatus: ReadingStatusEnum;
+}
+
+export type ProcessedEntry = Entry & ExtraFields;
+
 export interface Processor {
   reset: () => void;
   headerFound: (line:string[]) => boolean;
-  processLine:(line:string[]) => Entry | null;
+  processLine:(line:string[]) => ProcessedEntry | null;
 }

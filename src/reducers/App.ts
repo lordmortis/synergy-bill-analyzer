@@ -1,20 +1,22 @@
 import React, {useMemo, useReducer} from "react";
 
-import * as SynergyImporter from "../worker/ImportWorker";
-import { MessageType } from "../worker/ImportWorker";
-import { Entry } from "../worker/ImportWorker"
+import * as ImportWorker from "../worker/ImportWorker";
+import * as WorkerTypes from "../worker/format/Types";
+import * as Types from './Types';
 
 type State = {
   busy: boolean;
   filename: string | null;
-  records: Entry[] | null;
+  records: Types.ParsedRecords;
+  recordsProcessed: number;
   showDate: Date | null;
 }
 
 export const initialState:State = {
   busy: false,
   filename: null,
-  records: Array(0),
+  records: new Map<number, Types.DateEntries>(),
+  recordsProcessed: 0,
   showDate: null,
 }
 
@@ -61,26 +63,33 @@ type Action = ReturnType<
   | typeof importStarted | typeof importCompleted | typeof addRecords
 >
 
-type ImportedRecord = SynergyImporter.Entry;
+type ImportedRecord = WorkerTypes.ProcessedEntry;
 
 const synergyImporter : Worker = new Worker( new URL("../worker/ImportWorker.ts", import.meta.url));
 
-function AddRecords(records: Entry[] | null, newRecords: ImportedRecord[], startingRecordNumber: number) : Entry[] {
-  if (records == null) records = Array(0);
-  if (records.length > startingRecordNumber) return records;
+function AddRecords(
+  records: Types.ParsedRecords, recordsProcessed: number,
+  newRecords: ImportedRecord[], startingRecordNumber: number) : Types.ParsedRecords {
+  if (recordsProcessed > startingRecordNumber) return records;
 
   for(let index:number = 0; index < newRecords.length; index++) {
-    records.push(newRecords[index]);
+    const newRecord = newRecords[index];
+    let entries:Types.DateEntries | undefined = records.get(newRecord.date.getTime());
+    if (entries === undefined) {
+      entries = new Map<number, Types.PowerEntry>();
+      records.set(newRecord.date.getTime(), entries);
+    }
+    entries.set(newRecord.time, {hour: newRecord.time, kWhIn: newRecord.kWhIn, kWhOut: newRecord.kWhOut});
   }
 
   return records;
 }
 
-function SetDate(showDate: Date | null, records: Entry[] | null) : Date | null {
+function SetDate(showDate: Date | null, records: Types.ParsedRecords | null) : Date | null {
   if (records == null) return null;
-  if (records.length === 0) return null;
+  if (records.size === 0) return null;
   if (showDate != null) return showDate;
-  return records[0].date;
+  return new Date(Array.from(records.keys())[0]);
 }
 
 function reducer(state:State, action:Action) {
@@ -97,7 +106,8 @@ function reducer(state:State, action:Action) {
       return {
         ...state,
         busy: true,
-        records: Array(0),
+        records: new Map<number, Types.DateEntries>(),
+        recordsProcessed: 0,
         showDate: null
       }
     case ActionType.ImportHasEnded:
@@ -108,7 +118,7 @@ function reducer(state:State, action:Action) {
     case ActionType.ImportHasNewRecord:
       return {
         ...state,
-        records: AddRecords(state.records, action.records, action.startingRecordNumber),
+        records: AddRecords(state.records, state.recordsProcessed, action.records, action.startingRecordNumber),
         showDate: SetDate(state.showDate, state.records),
       }
     default:
@@ -121,15 +131,15 @@ export default function useUserReducer(startState = initialState): [State, React
 
   const wrappedDispatch = useMemo(
     () => {
-      synergyImporter.onmessage = (e:MessageEvent<SynergyImporter.Message>) => {
+      synergyImporter.onmessage = (e:MessageEvent<ImportWorker.Message>) => {
         switch(e.data.type) {
-          case MessageType.ImportStart:
+          case ImportWorker.MessageType.ImportStart:
             rawDispatch(importStarted())
             break;
-          case MessageType.ImportEnd:
+          case ImportWorker.MessageType.ImportEnd:
             rawDispatch(importCompleted())
             break;
-          case MessageType.NewRecords:
+          case ImportWorker.MessageType.NewRecords:
             rawDispatch(addRecords(e.data.records, e.data.recordNumber))
             break;
         }

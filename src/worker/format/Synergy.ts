@@ -1,4 +1,4 @@
-import {ReadingStatusEnum, Entry, Processor} from "./Types";
+import {ReadingStatusEnum, ProcessedEntry, Processor} from "./Types";
 
 const fileTypes: FileType[] = [
   {
@@ -127,7 +127,7 @@ export class SynergyProcessor implements Processor {
     return false;
   }
 
-  public processLine(line:string[]): Entry | null {
+  public processLine(line:string[]): ProcessedEntry | null {
     if (this.currentFileType == null) return null;
     const mapping = this.currentFileType.mapping;
     const kWhOut = this.generationIndex === -1 ? 0 : parseBlankFloat(line[this.generationIndex]);

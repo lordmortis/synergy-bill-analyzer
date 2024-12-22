@@ -1,8 +1,8 @@
 import {SynergyProcessor} from './format/Synergy'
 
-import {Entry, Processor} from "./format/Types";
+import {ProcessedEntry, Processor} from "./format/Types";
 
-export type {Entry} from "./format/Types";
+export type {ProcessedEntry} from "./format/Types";
 
 const LFVal:number = 0x0A;
 const CRVal:number = 0x0D;
@@ -55,7 +55,7 @@ function importEnd() {
   } as const;
 }
 
-function importedRecords(records:Entry[], recordNumber: number) {
+function importedRecords(records:ProcessedEntry[], recordNumber: number) {
   return {
     type: MessageType.NewRecords,
     records: records,
@@ -69,7 +69,7 @@ function postMessage(message:Message) {
 }
 
 async function ReadData(reader:ReadableStreamDefaultReader<Uint8Array>) {
-  const recordArray: Entry[] = Array(0);
+  const recordArray: ProcessedEntry[] = Array(0);
   let recordCount = 0;
   let remainingBuffer: Uint8Array | null = null;
   let currentLineBuffer: string | null = null;

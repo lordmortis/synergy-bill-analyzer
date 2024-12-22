@@ -7,7 +7,8 @@ import FileInput from "./components/FileInput";
 import Help from "./components/Help";
 
 import Reducer, * as Actions from "./reducers/App";
-import {Entry} from "./worker/format/Types";
+
+import * as Types from './reducers/Types';
 
 type GraphData = {
   maxIn: number;
@@ -32,36 +33,34 @@ function App() {
       inValues: false,
       outValues: false,
     }
+
     state.records?.forEach((record) => {
-      if (retVal.inValues || record.kWhIn > 0) retVal.inValues = true;
-      if (retVal.outValues || record.kWhOut > 0) retVal.outValues = true;
-      if (retVal.inValues && record.kWhIn > retVal.maxIn) retVal.maxIn = record.kWhIn;
-      if (retVal.outValues && record.kWhOut > retVal.maxOut) retVal.maxOut = record.kWhOut;
+      record.forEach((entry) => {
+        if (retVal.inValues || entry.kWhIn > 0) retVal.inValues = true;
+        if (retVal.outValues || entry.kWhOut > 0) retVal.outValues = true;
+        if (retVal.inValues && entry.kWhIn > retVal.maxIn) retVal.maxIn = entry.kWhIn;
+        if (retVal.outValues && entry.kWhOut > retVal.maxOut) retVal.maxOut = entry.kWhOut;
+      })
     });
     return retVal;
     // we have to use state.records.length or this doesn't work properly...
     //eslint-disable-next-line
-  }, [state.records, state.records?.length])
+  }, [state.records, state.records?.size])
 
   const dates = useMemo(() => {
     const dates:Date[] = Array(0);
     if (state.records == null) return dates;
-    state.records.forEach((record) => {
-      if (dates.find((entry) => entry.getTime() === record.date.getTime())) return;
-      dates.push(record.date);
+    state.records.forEach((_, recordDate) => {
+      if (dates.find((entry) => entry.getTime() === recordDate)) return;
+      dates.push(new Date(recordDate));
     })
     return dates;
     // we have to use state.records.length or this doesn't work properly...
     //eslint-disable-next-line
-  }, [state.records, state.records?.length])
+  }, [state.records, state.records?.size])
 
   const dateRecords = useMemo(() => {
-    const records:Entry[] = Array(0);
-    state.records?.forEach((record) => {
-      if (state.showDate?.getTime() !== record.date.getTime()) return;
-      records.push(record);
-    })
-    return records;
+    return state.showDate == null ? new Map<number, Types.PowerEntry>() : state.records?.get(state.showDate.getTime());
   }, [state.records, state.showDate]);
 
   if (showHelp) {
@@ -78,7 +77,7 @@ function App() {
         <FileInput
           busy={state.busy}
           filename={state.filename}
-          recordCount={state.records != null ? state.records.length : 0}
+          recordCount={state.records != null ? state.records.size : 0}
           importFile={importFile}/>
         <div>
           <div key="Show Inputs">

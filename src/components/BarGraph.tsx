@@ -1,6 +1,6 @@
 import React, {useEffect, useRef} from "react";
 import * as d3 from "d3";
-import { Entry } from "../worker/ImportWorker";
+import * as Types from "../reducers/Types";
 import {max} from "d3";
 
 function findOrAppend(parent: d3.Selection<SVGSVGElement | SVGGElement, unknown, null, undefined>, type: string, className: string): d3.Selection<SVGGElement, unknown, null, undefined> {
@@ -15,17 +15,16 @@ function findOrAppend(parent: d3.Selection<SVGSVGElement | SVGGElement, unknown,
 }
 
 interface IProps {
-  records: Entry[];
+  records: Types.DateEntries | undefined;
   maxInPower: number;
   maxOutPower: number;
   showInPower: boolean;
   showOutPower: boolean;
 }
 
-function convertRecordTime(record:Entry): string {
-  const time = record.time;
-  const hourPart = Math.trunc(time).toLocaleString("en-AU", {minimumIntegerDigits: 2});
-  const minutePart = (time % 1) > 0.01 ? "30" : "00";;
+function convertRecordTime(entry:Types.PowerEntry): string {
+  const hourPart = Math.trunc(entry.hour).toLocaleString("en-AU", {minimumIntegerDigits: 2});
+  const minutePart = (entry.hour % 1) > 0.01 ? "30" : "00";
   return `${hourPart}:${minutePart}`;
 }
 
@@ -50,7 +49,11 @@ export default function BarGraph(props:IProps) : React.ReactElement {
     let gElem = findOrAppend(svgElement, "g", "graph");
     gElem.attr("transform", `translate(${margin.left},${margin.top})`)
 
-    x.domain(props.records.map(convertRecordTime));
+    if (props.records === undefined) {
+      x.domain([]);
+    } else {
+      x.domain(Array.from(props.records.values()).map(convertRecordTime));
+    }
     if (props.showInPower) y.domain([0, props.maxInPower]);
     if (props.showOutPower) y.domain([0, props.maxOutPower]);
     if (props.showInPower && props.showOutPower) {
@@ -63,7 +66,7 @@ export default function BarGraph(props:IProps) : React.ReactElement {
     const xWidth:number = (props.showInPower && props.showOutPower) ? (x.bandwidth()) / 2 : x.bandwidth();
 
     gElem.selectAll(".barIn")
-      .data(props.records)
+      .data(Array.from(props.records !== undefined ? props.records.values() : []))
       .join(
         (enter) =>
           enter.append("rect")
@@ -95,7 +98,7 @@ export default function BarGraph(props:IProps) : React.ReactElement {
       )
 
     gElem.selectAll(".barOut")
-      .data(props.records)
+      .data(Array.from(props.records !== undefined ? props.records.values() : []))
       .join(
         (enter) =>
           enter.append("rect")
@@ -132,7 +135,7 @@ export default function BarGraph(props:IProps) : React.ReactElement {
             .attr("y", (elem) => props.showOutPower ? y(elem.kWhOut): height)
             .attr("width", xWidth)
             .attr("height", (elem) => props.showOutPower ? height - y(elem.kWhOut): 0)
-      )
+      );
 
     const xAxis = findOrAppend(gElem, "g", "xAxis");
     xAxis.attr("transform", `translate(0, ${height})`);
