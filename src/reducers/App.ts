@@ -9,6 +9,7 @@ type State = {
   filename: string | null;
   records: Types.ParsedRecords;
   recordsProcessed: number;
+  compareRecords: Types.CompareRecords;
   showDate: Date | null;
 }
 
@@ -17,6 +18,7 @@ export const initialState:State = {
   filename: null,
   records: new Map<number, Types.DateEntries>(),
   recordsProcessed: 0,
+  compareRecords: new Map<string, Types.DateEntries>(),
   showDate: null,
 }
 
@@ -26,6 +28,9 @@ enum ActionType {
   ImportHasStarted,
   ImportHasEnded,
   ImportHasNewRecord,
+  StoreDate,
+  DeleteDate,
+  CompareDate
 }
 
 export function importFile(file: File) {
@@ -37,6 +42,24 @@ export function importFile(file: File) {
 export function selectDate(date:Date) {
   return {
     type: ActionType.ShowDate, date
+  } as const
+}
+
+export function storeDate(date:Date, name:string) {
+  return {
+    type: ActionType.StoreDate, date, name
+  } as const
+}
+
+export function deleteDate(name:string) {
+  return {
+    type: ActionType.DeleteDate, name
+  } as const
+}
+
+export function compareDate(name:string) {
+  return {
+    type: ActionType.CompareDate, name
   } as const
 }
 
@@ -61,6 +84,7 @@ function addRecords(records: ImportedRecord[], startingRecordNumber: number) {
 type Action = ReturnType<
   typeof importFile | typeof selectDate
   | typeof importStarted | typeof importCompleted | typeof addRecords
+  | typeof storeDate //| typeof deleteDate | typeof compareDate
 >
 
 type ImportedRecord = WorkerTypes.ProcessedEntry;
@@ -108,6 +132,7 @@ function reducer(state:State, action:Action) {
         busy: true,
         records: new Map<number, Types.DateEntries>(),
         recordsProcessed: 0,
+        compareRecords: new Map<string, Types.DateEntries>(),
         showDate: null
       }
     case ActionType.ImportHasEnded:
@@ -120,6 +145,15 @@ function reducer(state:State, action:Action) {
         ...state,
         records: AddRecords(state.records, state.recordsProcessed, action.records, action.startingRecordNumber),
         showDate: SetDate(state.showDate, state.records),
+      }
+    case ActionType.StoreDate:
+      if (state.records == null) return state;
+      const dateRecords = state.records.get(action.date.getTime());
+      if (dateRecords == null) return state;
+      state.compareRecords.set(action.name, dateRecords);
+      return {
+        ...state,
+        compareRecords: state.compareRecords,
       }
     default:
       return state;

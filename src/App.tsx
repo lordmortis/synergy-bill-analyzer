@@ -2,6 +2,7 @@ import React, {useMemo, useState} from 'react';
 import './App.css';
 
 import BarGraph from "./components/BarGraph";
+import CompareList from "./components/CompareList";
 import DateSelect from "./components/DateSelect";
 import FileInput from "./components/FileInput";
 import Help from "./components/Help";
@@ -25,6 +26,7 @@ function App() {
 
   const importFile = (file:File) => dispatch(Actions.importFile(file));
   const selectDate = (date:Date) => dispatch(Actions.selectDate(date));
+  const storeDate = (date:Date, name:string) => dispatch(Actions.storeDate(date, name));
 
   const graphData:GraphData = useMemo(() => {
     const retVal:GraphData = {
@@ -99,6 +101,11 @@ function App() {
           showOutPower={showPowerOut}
         />
         <DateSelect dates={dates} currentDate={state.showDate} selectDate={selectDate}/>
+        <CompareList
+          currentDate={state.showDate}
+          records={state.compareRecords}
+          storeDate={storeDate}
+        />
       </div>
     );
   }
