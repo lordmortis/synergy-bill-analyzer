@@ -84,17 +84,20 @@ export default function BarGraph(props:IProps) : React.ReactElement {
           enter.append("rect")
             .attr("fill", "#7036EC")
             .attr("class", "barIn")
+            .attr("data-kwh", (elem):number => getkWhIn(elem, props.compareRecords))
+            .attr("data-time", (elem):string => convertRecordTime(elem))
             .attr("x", (elem):number => x(convertRecordTime(elem)) !== undefined ? x(convertRecordTime(elem)) as number : 0)
             .attr("y", (elem) => props.showInPower ? y(getkWhIn(elem, props.compareRecords)) : height)
             .attr("width", xWidth)
             .attr("height", (elem) => props.showInPower ? height - y(getkWhIn(elem, props.compareRecords)): 0)
             .on('mouseover',
               function (d, record) {
+                let text = `${d.target.dataset.kwh} kWh - ${d.target.dataset.time}`;
                 d3.select(this).transition().duration(50).attr('opacity', '.5');
                 toolTipElement.style('opacity', 1)
                   .style('left', `${d.clientX + 10}px`)
                   .style('top', `${d.clientY + 10}px`)
-                  .text(`${record.kWhIn} kWh - ${convertRecordTime(record)}`)
+                  .text(text);
               })
             .on('mouseout',
               function(d, record) {
@@ -103,6 +106,7 @@ export default function BarGraph(props:IProps) : React.ReactElement {
               })
         , update =>
           update.transition().duration(750)
+            .attr("data-kwh", (elem):number => getkWhIn(elem, props.compareRecords))
             .attr("x", (elem):number => x(convertRecordTime(elem)) !== undefined ? x(convertRecordTime(elem)) as number : 0)
             .attr("y", (elem) => props.showInPower ? y(getkWhIn(elem, props.compareRecords)): height)
             .attr("width", xWidth)
@@ -126,11 +130,12 @@ export default function BarGraph(props:IProps) : React.ReactElement {
             .attr("height", (elem) => props.showOutPower ? height - y(elem.kWhOut): 0)
             .on('mouseover',
               function (d, record) {
+                let text = `${record.kWhOut} kWh - ${convertRecordTime(record)}`;
                 d3.select(this).transition().duration(50).attr('opacity', '.5');
                 toolTipElement.style('opacity', 1)
                   .style('left', `${d.clientX + 10}px`)
                   .style('top', `${d.clientY + 10}px`)
-                  .text(`${record.kWhIn} kWh - ${convertRecordTime(record)}`)
+                  .text(text);
               })
             .on('mouseout',
               function(d, record) {
@@ -161,7 +166,7 @@ export default function BarGraph(props:IProps) : React.ReactElement {
     const yAxis = findOrAppend(gElem, "g", "yAxis");
     yAxis.call(d3.axisLeft(y).ticks(4));
 
-  }, [props.compareRecords, props.records, props.maxInPower, props.maxOutPower, props.showOutPower, props.showInPower,
+  }, [props.compareRecords, props.compareRecords?.size, props.records, props.maxInPower, props.maxOutPower, props.showOutPower, props.showInPower,
      margin.left, margin.top, width, height, x, y
   ]);
 
