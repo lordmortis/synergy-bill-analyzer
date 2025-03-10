@@ -29,6 +29,8 @@ function App() {
   const storeDate = (date:Date, name:string) => dispatch(Actions.storeDate(date, name));
   const compareDate = (name:string | null) => dispatch(Actions.compareDate(name));
   const deleteDate = (name:string) => dispatch(Actions.deleteDate(name));
+  const selectHour = (hour:number) => dispatch(Actions.selectHour(hour));
+  const deselectHour = (hour:number) => dispatch(Actions.deselectHour(hour));
 
   const graphData:GraphData = useMemo(() => {
     const retVal:GraphData = {
@@ -125,6 +127,9 @@ function App() {
           maxOutPower={graphData.maxOut}
           showInPower={showPowerIn}
           showOutPower={showPowerOut}
+          selectedHours={state.selectedHours}
+          selectHour={selectHour}
+          deselectHour={deselectHour}
         />
         <DateSelect dates={dates} currentDate={state.showDate} selectDate={selectDate}/>
       </div>

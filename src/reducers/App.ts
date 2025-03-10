@@ -12,6 +12,7 @@ type State = {
   compareRecords: Types.CompareRecords;
   selectedCompareRecord: string | null;
   showDate: Date | null;
+  selectedHours: Array<number>;
 }
 
 export const initialState:State = {
@@ -22,6 +23,7 @@ export const initialState:State = {
   compareRecords: new Map<string, Types.DateEntries>(),
   selectedCompareRecord: null,
   showDate: null,
+  selectedHours: [],
 }
 
 enum ActionType {
@@ -32,7 +34,9 @@ enum ActionType {
   ImportHasNewRecord,
   StoreDate,
   DeleteDate,
-  CompareDate
+  CompareDate,
+  SelectHour,
+  DeselectHour,
 }
 
 export function importFile(file: File) {
@@ -83,10 +87,22 @@ function addRecords(records: ImportedRecord[], startingRecordNumber: number) {
   } as const
 }
 
+export function selectHour(hour:number) {
+  return {
+    type: ActionType.SelectHour, hour
+  } as const
+}
+
+export function deselectHour(hour:number) {
+  return {
+    type: ActionType.DeselectHour, hour
+  } as const
+}
+
 type Action = ReturnType<
   typeof importFile | typeof selectDate
   | typeof importStarted | typeof importCompleted | typeof addRecords
-  | typeof storeDate | typeof deleteDate | typeof compareDate
+  | typeof storeDate | typeof deleteDate | typeof compareDate | typeof selectHour | typeof deselectHour
 >
 
 type ImportedRecord = WorkerTypes.ProcessedEntry;
@@ -165,16 +181,29 @@ function reducer(state:State, action:Action) {
         ...state,
         compareRecords: state.compareRecords,
       }
-      case ActionType.CompareDate:
-        if (state.compareRecords == null) return state;
-        if (action.name != null) {
-          const records = state.compareRecords.get(action.name);
-          if (records == null) return state;
-        }
-        return {
-          ...state,
-          selectedCompareRecord: action.name,
-        }
+    case ActionType.CompareDate:
+      if (state.compareRecords == null) return state;
+      if (action.name != null) {
+        const records = state.compareRecords.get(action.name);
+        if (records == null) return state;
+      }
+      return {
+        ...state,
+        selectedCompareRecord: action.name,
+      }
+    case ActionType.SelectHour:
+      if (state.selectedHours.indexOf(action.hour) !== -1) return state;
+      state.selectedHours.push(action.hour)
+      return {
+        ...state,
+        selectedHours: state.selectedHours,
+      }
+    case ActionType.DeselectHour:
+      if (state.selectedHours.indexOf(action.hour) === -1) return state;
+      return {
+        ...state,
+        selectedHours: state.selectedHours.splice(state.selectedHours.indexOf(action.hour), 1),
+      }
     default:
       return state;
   }

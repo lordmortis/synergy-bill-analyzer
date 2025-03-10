@@ -3,6 +3,11 @@ import * as d3 from "d3";
 import * as Types from "../reducers/Types";
 import {max} from "d3";
 
+const ColorInBar:string = "#7036EC";
+const ColorInBarSelected:string = "#FF16AC";
+const ColorOutBar:string = "#A3E415";
+const ColorOutBarSelected:string = "#A3E415";
+
 function findOrAppend(parent: d3.Selection<SVGSVGElement | SVGGElement, unknown, null, undefined>, type: string, className: string): d3.Selection<SVGGElement, unknown, null, undefined> {
   let searchVal = parent.select(`${type}.${className}`);
   if (searchVal.empty()) {
@@ -21,6 +26,9 @@ interface IProps {
   maxOutPower: number;
   showInPower: boolean;
   showOutPower: boolean;
+  selectedHours: Array<number>;
+  selectHour: (hour: number) => void;
+  deselectHour: (hour: number) => void;
 }
 
 function convertRecordTime(entry:Types.PowerEntry): string {
@@ -82,7 +90,7 @@ export default function BarGraph(props:IProps) : React.ReactElement {
       .join(
         (enter) =>
           enter.append("rect")
-            .attr("fill", "#7036EC")
+            .attr("fill", (elem) => props.selectedHours.indexOf(elem.hour) === -1 ? ColorInBar : ColorInBarSelected)
             .attr("class", "barIn")
             .attr("data-kwh", (elem):number => getkWhIn(elem, props.compareRecords))
             .attr("data-time", (elem):string => convertRecordTime(elem))
@@ -104,6 +112,16 @@ export default function BarGraph(props:IProps) : React.ReactElement {
                 d3.select(this).transition().duration(50).attr('opacity', '1')
                 toolTipElement.style('opacity', 0);
               })
+            .on('click',
+              function(d, record) {
+                if (props.selectedHours.indexOf(record.hour) === -1) {
+                  props.selectHour(record.hour);
+                  d3.select(this).attr('fill', ColorInBarSelected);
+                } else {
+                  props.deselectHour(record.hour);
+                  d3.select(this).attr('fill', ColorInBar);
+                }
+              })
         , update =>
           update.transition().duration(750)
             .attr("data-kwh", (elem):number => getkWhIn(elem, props.compareRecords))
@@ -118,7 +136,7 @@ export default function BarGraph(props:IProps) : React.ReactElement {
       .join(
         (enter) =>
           enter.append("rect")
-            .attr("fill", "#A3E415")
+            .attr("fill", (elem) => props.selectedHours.indexOf(elem.hour) === -1 ? ColorOutBar : ColorOutBarSelected)
             .attr("class", "barOut")
             .attr("x", (elem):number => {
               const convertedVal = x(convertRecordTime(elem));
@@ -141,6 +159,16 @@ export default function BarGraph(props:IProps) : React.ReactElement {
               function(d, record) {
                 d3.select(this).transition().duration(50).attr('opacity', '1')
                 toolTipElement.style('opacity', 0);
+              })
+            .on('click',
+              function(d, record) {
+                if (props.selectedHours.indexOf(record.hour) === -1) {
+                  props.selectHour(record.hour);
+                  d3.select(this).attr('fill', ColorOutBarSelected);
+                } else {
+                  props.deselectHour(record.hour);
+                  d3.select(this).attr('fill', ColorOutBar);
+                }
               })
         , update =>
           update.transition().duration(750)
