@@ -128,6 +128,7 @@ export default function BarGraph(props:IProps) : React.ReactElement {
             .attr("x", (elem):number => x(convertRecordTime(elem)) !== undefined ? x(convertRecordTime(elem)) as number : 0)
             .attr("y", (elem) => props.showInPower ? y(getkWhIn(elem, props.compareRecords)): height)
             .attr("width", xWidth)
+            .attr("fill", (elem) => props.selectedHours.indexOf(elem.hour) === -1 ? ColorInBar : ColorInBarSelected)
             .attr("height", (elem) => props.showInPower ? height - y(getkWhIn(elem, props.compareRecords)): 0)
       )
 
@@ -180,6 +181,7 @@ export default function BarGraph(props:IProps) : React.ReactElement {
             .attr("y", (elem) => props.showOutPower ? y(elem.kWhOut): height)
             .attr("width", xWidth)
             .attr("height", (elem) => props.showOutPower ? height - y(elem.kWhOut): 0)
+            .attr("fill", (elem) => props.selectedHours.indexOf(elem.hour) === -1 ? ColorOutBar : ColorOutBarSelected)
       );
 
     const xAxis = findOrAppend(gElem, "g", "xAxis");
@@ -194,8 +196,11 @@ export default function BarGraph(props:IProps) : React.ReactElement {
     const yAxis = findOrAppend(gElem, "g", "yAxis");
     yAxis.call(d3.axisLeft(y).ticks(4));
 
-  }, [props.compareRecords, props.compareRecords?.size, props.records, props.maxInPower, props.maxOutPower, props.showOutPower, props.showInPower,
-     margin.left, margin.top, width, height, x, y
+  }, [
+    props.compareRecords, props.compareRecords?.size,
+    props.records, props.maxInPower, props.maxOutPower, props.showOutPower, props.showInPower,
+    props.selectedHours, props.selectedHours?.length,
+    margin.left, margin.top, width, height, x, y
   ]);
 
 

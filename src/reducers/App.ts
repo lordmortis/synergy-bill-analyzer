@@ -35,6 +35,7 @@ enum ActionType {
   StoreDate,
   DeleteDate,
   CompareDate,
+  ClearSelectedHours,
   SelectHour,
   DeselectHour,
 }
@@ -87,6 +88,12 @@ function addRecords(records: ImportedRecord[], startingRecordNumber: number) {
   } as const
 }
 
+export function clearSelectedHours() {
+  return {
+    type: ActionType.ClearSelectedHours
+  } as const
+}
+
 export function selectHour(hour:number) {
   return {
     type: ActionType.SelectHour, hour
@@ -102,7 +109,8 @@ export function deselectHour(hour:number) {
 type Action = ReturnType<
   typeof importFile | typeof selectDate
   | typeof importStarted | typeof importCompleted | typeof addRecords
-  | typeof storeDate | typeof deleteDate | typeof compareDate | typeof selectHour | typeof deselectHour
+  | typeof storeDate | typeof deleteDate | typeof compareDate
+  | typeof clearSelectedHours | typeof selectHour | typeof deselectHour
 >
 
 type ImportedRecord = WorkerTypes.ProcessedEntry;
@@ -190,6 +198,11 @@ function reducer(state:State, action:Action) {
       return {
         ...state,
         selectedCompareRecord: action.name,
+      }
+    case ActionType.ClearSelectedHours:
+      return {
+        ...state,
+        selectedHours: state.selectedHours.splice(0, state.selectedHours.length),
       }
     case ActionType.SelectHour:
       if (state.selectedHours.indexOf(action.hour) !== -1) return state;

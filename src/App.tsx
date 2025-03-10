@@ -18,6 +18,28 @@ type GraphData = {
   outValues: boolean;
 }
 
+function generateTotal(
+  selected: Array<number>,
+  records:Types.DateEntries | undefined,
+  compareRecords: Types.DateEntries | null) {
+
+  const sum = selected.reduce(function(total, hour) {
+    if (records === undefined) return total;
+    const recordEntry = records.get(hour);
+    if (recordEntry === undefined) return total;
+    let value = recordEntry.kWhIn
+    if (compareRecords !== null) {
+      const compareEntry = compareRecords.get(hour);
+      if (compareEntry !== undefined) {
+        value = value - compareEntry.kWhIn;
+      }
+    }
+    return total + value;
+  }, 0)
+
+  return Math.round(sum * 1000) / 1000;
+}
+
 function App() {
   const [state, dispatch] = Reducer();
   const [showHelp, setShowHelp] = useState(false);
@@ -29,6 +51,7 @@ function App() {
   const storeDate = (date:Date, name:string) => dispatch(Actions.storeDate(date, name));
   const compareDate = (name:string | null) => dispatch(Actions.compareDate(name));
   const deleteDate = (name:string) => dispatch(Actions.deleteDate(name));
+  const clearSelectedHours = () => dispatch(Actions.clearSelectedHours());
   const selectHour = (hour:number) => dispatch(Actions.selectHour(hour));
   const deselectHour = (hour:number) => dispatch(Actions.deselectHour(hour));
 
@@ -85,6 +108,16 @@ function App() {
       </div>
     );
   } else {
+
+    let sumPanel = null;
+    if (state.selectedHours.length > 0) {
+      sumPanel = <div className="panel">
+        Total of Selected<br/>
+        {generateTotal(state.selectedHours, dateRecords, compareRecords)} kWh<br/>
+        <button onClick={() => clearSelectedHours()}>Clear</button>
+      </div>
+    }
+
     return (
       <div className="App">
       <button onClick={() => setShowHelp(true)}>Help</button>
@@ -108,6 +141,7 @@ function App() {
               </div>
             </div>
           </div>
+          {sumPanel}
           <div className="panel">
             Compare List
             <CompareList
