@@ -59,7 +59,26 @@ export default function BarGraph(props:IProps) : React.ReactElement {
   const x = d3.scaleBand().range([0, width]).padding(0.1);
   const y = d3.scaleLinear().range([height, 0]);
 
+  const {
+    compareRecords, records, maxInPower, maxOutPower, showOutPower, showInPower, selectedHours,
+    selectHour, deselectHour } = props;
+
+/*  function(d, record) {
+    console.log(selectedHours);
+    if (selectedHours.indexOf(record.hour) === -1) {
+      console.log("Selected hour");
+      console.log(record.hour);
+      selectHour(record.hour);
+      d3.select(this).attr('fill', ColorOutBarSelected);
+    } else {
+      console.log("deselect hour");
+      console.log(record.hour);
+      deselectHour(record.hour);
+      d3.select(this).attr('fill', ColorOutBar);
+    }*/
+
   useEffect(() => {
+    console.log("Redraw?");
     if (svgRef.current === undefined) return;
     if (toolTipRef.current === null) return;
     const toolTipElement = d3.select(toolTipRef.current);
@@ -69,35 +88,48 @@ export default function BarGraph(props:IProps) : React.ReactElement {
     let gElem = findOrAppend(svgElement, "g", "graph");
     gElem.attr("transform", `translate(${margin.left},${margin.top})`)
 
-    if (props.records === undefined) {
+    if (records === undefined) {
       x.domain([]);
     } else {
-      x.domain(Array.from(props.records.values()).map(convertRecordTime));
+      x.domain(Array.from(records.values()).map(convertRecordTime));
     }
-    if (props.showInPower) y.domain([0, props.maxInPower]);
-    if (props.showOutPower) y.domain([0, props.maxOutPower]);
-    if (props.showInPower && props.showOutPower) {
-      let maxPower = max([props.maxInPower, props.maxOutPower]);
+    if (showInPower) y.domain([0, maxInPower]);
+    if (showOutPower) y.domain([0, maxOutPower]);
+    if (showInPower && showOutPower) {
+      let maxPower = max([maxInPower, maxOutPower]);
       if (maxPower === undefined) maxPower = 0;
       y.domain([0, maxPower]);
     }
     y.nice();
 
-    const xWidth:number = (props.showInPower && props.showOutPower) ? (x.bandwidth()) / 2 : x.bandwidth();
+    const xWidth:number = (showInPower && showOutPower) ? (x.bandwidth()) / 2 : x.bandwidth();
+
+    const HandleBarClick = (d:any, record: Types.PowerEntry) => {
+      const elem = d.target;
+      const selected = elem.dataset.selected === "true"
+      if (!selected) {
+        selectHour(record.hour);
+        d3.select(elem).attr('fill', ColorInBarSelected);
+      } else {
+        deselectHour(record.hour);
+        d3.select(elem).attr('fill', ColorInBar);
+      }
+    }
 
     gElem.selectAll(".barIn")
-      .data(Array.from(props.records !== undefined ? props.records.values() : []))
+      .data(Array.from(records !== undefined ? records.values() : []))
       .join(
         (enter) =>
           enter.append("rect")
-            .attr("fill", (elem) => props.selectedHours.indexOf(elem.hour) === -1 ? ColorInBar : ColorInBarSelected)
             .attr("class", "barIn")
-            .attr("data-kwh", (elem):number => getkWhIn(elem, props.compareRecords))
+            .attr("data-kwh", (elem):number => getkWhIn(elem, compareRecords))
             .attr("data-time", (elem):string => convertRecordTime(elem))
+            .attr("data-selected", (elem):boolean => selectedHours.indexOf(elem.hour) !== -1)
+            .attr("fill", (elem) => selectedHours.indexOf(elem.hour) === -1 ? ColorInBar : ColorInBarSelected)
             .attr("x", (elem):number => x(convertRecordTime(elem)) !== undefined ? x(convertRecordTime(elem)) as number : 0)
-            .attr("y", (elem) => props.showInPower ? y(getkWhIn(elem, props.compareRecords)) : height)
+            .attr("y", (elem) => showInPower ? y(getkWhIn(elem, compareRecords)) : height)
             .attr("width", xWidth)
-            .attr("height", (elem) => props.showInPower ? height - y(getkWhIn(elem, props.compareRecords)): 0)
+            .attr("height", (elem) => showInPower ? height - y(getkWhIn(elem, compareRecords)): 0)
             .on('mouseover',
               function (d, record) {
                 let text = `${d.target.dataset.kwh} kWh - ${d.target.dataset.time}`;
@@ -112,41 +144,33 @@ export default function BarGraph(props:IProps) : React.ReactElement {
                 d3.select(this).transition().duration(50).attr('opacity', '1')
                 toolTipElement.style('opacity', 0);
               })
-            .on('click',
-              function(d, record) {
-                if (props.selectedHours.indexOf(record.hour) === -1) {
-                  props.selectHour(record.hour);
-                  d3.select(this).attr('fill', ColorInBarSelected);
-                } else {
-                  props.deselectHour(record.hour);
-                  d3.select(this).attr('fill', ColorInBar);
-                }
-              })
+            .on('click', HandleBarClick)
         , update =>
           update.transition().duration(750)
-            .attr("data-kwh", (elem):number => getkWhIn(elem, props.compareRecords))
+            .attr("data-kwh", (elem):number => getkWhIn(elem, compareRecords))
+            .attr("data-selected", (elem):boolean => selectedHours.indexOf(elem.hour) !== -1)
             .attr("x", (elem):number => x(convertRecordTime(elem)) !== undefined ? x(convertRecordTime(elem)) as number : 0)
-            .attr("y", (elem) => props.showInPower ? y(getkWhIn(elem, props.compareRecords)): height)
+            .attr("y", (elem) => showInPower ? y(getkWhIn(elem, compareRecords)): height)
             .attr("width", xWidth)
-            .attr("fill", (elem) => props.selectedHours.indexOf(elem.hour) === -1 ? ColorInBar : ColorInBarSelected)
-            .attr("height", (elem) => props.showInPower ? height - y(getkWhIn(elem, props.compareRecords)): 0)
+            .attr("fill", (elem) => selectedHours.indexOf(elem.hour) === -1 ? ColorInBar : ColorInBarSelected)
+            .attr("height", (elem) => showInPower ? height - y(getkWhIn(elem, compareRecords)): 0)
       )
 
     gElem.selectAll(".barOut")
-      .data(Array.from(props.records !== undefined ? props.records.values() : []))
+      .data(Array.from(records !== undefined ? records.values() : []))
       .join(
         (enter) =>
           enter.append("rect")
-            .attr("fill", (elem) => props.selectedHours.indexOf(elem.hour) === -1 ? ColorOutBar : ColorOutBarSelected)
+            .attr("fill", (elem) => selectedHours.indexOf(elem.hour) === -1 ? ColorOutBar : ColorOutBarSelected)
             .attr("class", "barOut")
             .attr("x", (elem):number => {
               const convertedVal = x(convertRecordTime(elem));
               if (convertedVal === undefined) return 0;
-              return props.showInPower ? convertedVal + x.bandwidth() / 2 : convertedVal;
+              return showInPower ? convertedVal + x.bandwidth() / 2 : convertedVal;
             })
-            .attr("y", (elem) => props.showOutPower ? y(elem.kWhOut): height)
+            .attr("y", (elem) => showOutPower ? y(elem.kWhOut): height)
             .attr("width", xWidth)
-            .attr("height", (elem) => props.showOutPower ? height - y(elem.kWhOut): 0)
+            .attr("height", (elem) => showOutPower ? height - y(elem.kWhOut): 0)
             .on('mouseover',
               function (d, record) {
                 let text = `${record.kWhOut} kWh - ${convertRecordTime(record)}`;
@@ -161,27 +185,18 @@ export default function BarGraph(props:IProps) : React.ReactElement {
                 d3.select(this).transition().duration(50).attr('opacity', '1')
                 toolTipElement.style('opacity', 0);
               })
-            .on('click',
-              function(d, record) {
-                if (props.selectedHours.indexOf(record.hour) === -1) {
-                  props.selectHour(record.hour);
-                  d3.select(this).attr('fill', ColorOutBarSelected);
-                } else {
-                  props.deselectHour(record.hour);
-                  d3.select(this).attr('fill', ColorOutBar);
-                }
-              })
+            .on('click', HandleBarClick)
         , update =>
           update.transition().duration(750)
             .attr("x", (elem):number => {
               const convertedVal = x(convertRecordTime(elem));
               if (convertedVal === undefined) return 0;
-              return props.showInPower ? convertedVal + x.bandwidth() / 2 : convertedVal;
+              return showInPower ? convertedVal + x.bandwidth() / 2 : convertedVal;
             })
-            .attr("y", (elem) => props.showOutPower ? y(elem.kWhOut): height)
+            .attr("y", (elem) => showOutPower ? y(elem.kWhOut): height)
             .attr("width", xWidth)
-            .attr("height", (elem) => props.showOutPower ? height - y(elem.kWhOut): 0)
-            .attr("fill", (elem) => props.selectedHours.indexOf(elem.hour) === -1 ? ColorOutBar : ColorOutBarSelected)
+            .attr("height", (elem) => showOutPower ? height - y(elem.kWhOut): 0)
+            .attr("fill", (elem) => selectedHours.indexOf(elem.hour) === -1 ? ColorOutBar : ColorOutBarSelected)
       );
 
     const xAxis = findOrAppend(gElem, "g", "xAxis");
@@ -197,10 +212,8 @@ export default function BarGraph(props:IProps) : React.ReactElement {
     yAxis.call(d3.axisLeft(y).ticks(4));
 
   }, [
-    props.compareRecords, props.compareRecords?.size,
-    props.records, props.maxInPower, props.maxOutPower, props.showOutPower, props.showInPower,
-    props.selectedHours, props.selectedHours?.length,
-    margin.left, margin.top, width, height, x, y
+    compareRecords, records, maxInPower, maxOutPower, showOutPower, showInPower, selectedHours,
+    deselectHour, selectHour, margin.left, margin.top, width, height, x, y
   ]);
 
 

@@ -143,6 +143,7 @@ function SetDate(showDate: Date | null, records: Types.ParsedRecords | null) : D
 }
 
 function reducer(state:State, action:Action) {
+  let newSelectedHours: number[] = [];
   switch(action.type) {
     case ActionType.ImportFile:
       synergyImporter.postMessage(action.file);
@@ -202,20 +203,29 @@ function reducer(state:State, action:Action) {
     case ActionType.ClearSelectedHours:
       return {
         ...state,
-        selectedHours: state.selectedHours.splice(0, state.selectedHours.length),
+        selectedHours: [],
       }
     case ActionType.SelectHour:
+      console.log("Action: select:");
+      console.log(action.hour);
       if (state.selectedHours.indexOf(action.hour) !== -1) return state;
-      state.selectedHours.push(action.hour)
+      newSelectedHours = state.selectedHours.map(x => x);
+      newSelectedHours.push(action.hour)
       return {
         ...state,
-        selectedHours: state.selectedHours,
+        selectedHours: newSelectedHours,
       }
     case ActionType.DeselectHour:
+      console.log("Action: deselect:");
+      console.log(action.hour);
       if (state.selectedHours.indexOf(action.hour) === -1) return state;
+      state.selectedHours.forEach((value) => {
+        if (value === action.hour) return;
+        newSelectedHours.push(value);
+      });
       return {
         ...state,
-        selectedHours: state.selectedHours.splice(state.selectedHours.indexOf(action.hour), 1),
+        selectedHours: newSelectedHours,
       }
     default:
       return state;
